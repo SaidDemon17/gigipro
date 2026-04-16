@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PawFinder – Reunite Lost Dogs</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/styles.css"/>
+<!-- Leaflet para el mapa -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- TensorFlow.js y MobileNet -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('home')" style="cursor:pointer">
+      <div class="logo-icon">🐾</div>
+      PawFinder
+    </div>
+    <div class="nav-links">
+      <a href="#" class="active" onclick="showPage('home');setActive(this)">Home</a>
+      <a href="#" onclick="showPage('lost');setActive(this)">Lost Dogs</a>
+      <a href="#" onclick="showPage('found');setActive(this)">Found Dogs</a>
+      <a href="#" onclick="showPage('map');setActive(this)">Map View</a>
+      <a href="#" onclick="showPage('ranking');setActive(this)">Leaderboard</a>
+      <a href="#" onclick="showPage('account');setActive(this)">My Account</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-primary" onclick="showPage('report')">+ Report Dog</button>
+      <button class="btn btn-outline" onclick="openAuthModal()">Sign In</button>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGES CONTAINERS -->
+<div id="page-home" class="page active"></div>
+<div id="page-lost" class="page"></div>
+<div id="page-found" class="page"></div>
+<div id="page-detail" class="page">
+  <div id="detail-content"></div>
+</div>
+<div id="page-report" class="page"></div>
+<div id="page-ranking" class="page"></div>
+<div id="page-map" class="page"></div>
+<div id="page-account" class="page"></div>
+
+<!-- MODAL DE LOGIN (ACTUALIZADO) -->
+1
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================ -->
+<!-- SCRIPTS - ORDEN CORRECTO -->
+<!-- ============================================ -->
+
+<!-- 1. AI y utilidades primero -->
+<script src="js/ai/breedClassifier.js"></script>
+
+<!-- 2. Datos y utilidades -->
+<script src="js/data.js"></script>
+<script src="js/utils/helpers.js"></script>
+<script src="js/utils/ui.js"></script>
+
+<!-- 3. Autenticación (importante antes de los componentes que la usan) -->
+<script src="js/auth/users.js"></script>
+<script src="js/auth/auth.js"></script>
+
+<!-- 4. Componentes -->
+<script src="js/components/cards.js"></script>
+<script src="js/components/dogDetail.js"></script>
+<script src="js/components/map.js"></script>
+<script src="js/components/leaderboard.js"></script>
+<script src="js/components/navigation.js"></script>
+
+<!-- 5. Páginas -->
+<script src="js/pages/account.js"></script>
+<script src="js/pages/report.js"></script>
+<script src="js/pages/home.js"></script>
+<script src="js/pages/lost.js"></script>
+<script src="js/pages/found.js"></script>
+<script src="js/pages/ranking.js"></script>
+<script src="js/pages/map.js"></script>
+
+<!-- 6. Inicialización (siempre al final) -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
