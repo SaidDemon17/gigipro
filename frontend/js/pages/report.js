@@ -372,7 +372,7 @@ async function submitReport() {
     selectedFiles.forEach(file => formData.append('photos', file));
     
     try {
-      const uploadRes = await fetch('http://localhost:3000/api/upload', {
+      const uploadRes = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
         body: formData
       });
@@ -409,7 +409,7 @@ async function submitReport() {
   };
   
   try {
-    const response = await fetch('http://localhost:3000/api/reports', {
+    const response = await fetch(`${API_URL}/api/reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reportData)

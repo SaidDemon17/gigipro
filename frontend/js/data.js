@@ -8,7 +8,7 @@ let nextId = 100;
 // Función para cargar reportes desde el backend
 async function loadReportsFromBackend() {
   try {
-    const response = await fetch('http://localhost:3000/api/reports');
+    const response = await fetch(`${API_URL}/api/reports`);
     if (response.ok) {
       const reports = await response.json();
       console.log('Reports loaded from backend:', reports.length);

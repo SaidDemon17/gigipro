@@ -19,7 +19,7 @@ function getUserRole(points) {
 // Registrar usuario en Neon
 async function registerUser(email, password, name) {
   try {
-    const response = await fetch('http://localhost:3000/api/users/register', {
+    const response = await fetch(`${API_URL}/api/users/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name })
@@ -41,7 +41,7 @@ async function registerUser(email, password, name) {
 // Iniciar sesión en Neon
 async function loginUser(email, password) {
   try {
-    const response = await fetch('http://localhost:3000/api/users/login', {
+    const response = await fetch(`${API_URL}/api/users/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -79,7 +79,7 @@ function getCurrentUser() {
 // Obtener datos completos del usuario (incluyendo actividades, comentarios, logros)
 async function fetchUserData(userId) {
   try {
-    const response = await fetch(`http://localhost:3000/api/users/${userId}`);
+    const response = await fetch(`${API_URL}/api/users/${userId}`);
     const data = await response.json();
     
     if (data.success) {
@@ -95,7 +95,7 @@ async function fetchUserData(userId) {
 // Actualizar puntos del usuario
 async function updateUserPoints(userId, pointsToAdd, action, reportType = null) {
   try {
-    const response = await fetch(`http://localhost:3000/api/users/${userId}/points`, {
+    const response = await fetch(`${API_URL}/api/users/${userId}/points`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pointsToAdd, action, reportType })
@@ -130,7 +130,7 @@ async function updateUserProfile(userId, newName, newAvatar) {
     if (newName) body.name = newName;
     if (newAvatar) body.avatar = newAvatar;
     
-    const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+    const response = await fetch(`${API_URL}/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -158,7 +158,7 @@ async function updateUserProfile(userId, newName, newAvatar) {
 async function addProfileComment(userId, commenterName, commentText) {
   try {
     const currentUser = getCurrentUser();
-    const response = await fetch(`http://localhost:3000/api/users/${userId}/comments`, {
+    const response = await fetch(`${API_URL}/api/users/${userId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -179,7 +179,7 @@ async function addProfileComment(userId, commenterName, commentText) {
 // Obtener ranking
 async function getRanking() {
   try {
-    const response = await fetch('http://localhost:3000/api/users/ranking');
+    const response = await fetch(`${API_URL}/api/users/ranking`);
     const data = await response.json();
     return data;
   } catch (error) {
