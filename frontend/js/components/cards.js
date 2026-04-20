@@ -11,7 +11,7 @@ function dogCard(dog, showBtn = true) {
   
   // Verificar si tiene fotos
   const hasPhotos = dog.photos && dog.photos.length > 0;
-  const firstPhoto = hasPhotos ? `http://localhost:3000${dog.photos[0]}` : null;
+  const firstPhoto = hasPhotos ? `https://gigipro.onrender.com${dog.photos[0]}` : null;
   
   // Mostrar foto real o emoji
   const imageHtml = firstPhoto 

@@ -172,13 +172,10 @@ async function showDetail(id) {
         <div class="detail-img-col">
           <div class="detail-img" style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; background:#f0f0f0">
             ${dog.photos && dog.photos.length > 0 && dog.photos[0] ? 
-              (() => {
-                const photoUrl = dog.photos[0].startsWith('http') ? dog.photos[0] : `http://localhost:3000${dog.photos[0]}`;
-                return `<img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\'display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem\'>🐕</div>'" />`;
-              })() :
-              `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">${dog.emoji || '🐕'}</div>`
-            }
-          </div>
+            `<img src="${dog.photos[0]}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\'display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem\'>🐕</div>'" />` :
+            `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">${dog.emoji || '🐕'}</div>`
+          }
+        </div>
           ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} REWARD</div>` : ''}
         </div>
         <div class="detail-info-col">
