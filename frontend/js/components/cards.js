@@ -9,9 +9,9 @@ function dogCard(dog, showBtn = true) {
   const dogDate = dog.date || new Date().toISOString().split('T')[0];
   const dogDesc = dog.desc || dog.description || 'No description available';
   
-  // Verificar si tiene fotos
+  // ✅ CORREGIDO: No concatenar la URL, usar directamente la de Cloudinary
   const hasPhotos = dog.photos && dog.photos.length > 0;
-  const firstPhoto = hasPhotos ? `https://gigipro.onrender.com${dog.photos[0]}` : null;
+  const firstPhoto = hasPhotos ? dog.photos[0] : null;
   
   // Mostrar foto real o emoji
   const imageHtml = firstPhoto 
