@@ -99,7 +99,7 @@ function renderReportPage() {
   document.getElementById('page-report').innerHTML = html;
   initReportMap();
   setupDragAndDrop();
-  updateFormFields(); // Aplicar estado inicial según el tipo activo
+  updateFormFields();
 }
 
 // Función para mostrar/ocultar campos según el tipo de reporte
@@ -109,29 +109,17 @@ function updateFormFields() {
   const rewardSection = document.getElementById('reward-section');
   
   if (!isLost) {
-    // Modo FOUND - ocultar campos innecesarios
-    if (dogNameGroup) {
-      dogNameGroup.style.display = 'none';
-    }
-    if (rewardSection) {
-      rewardSection.style.display = 'none';
-    }
+    if (dogNameGroup) dogNameGroup.style.display = 'none';
+    if (rewardSection) rewardSection.style.display = 'none';
   } else {
-    // Modo LOST - mostrar todos los campos
-    if (dogNameGroup) {
-      dogNameGroup.style.display = 'block';
-    }
-    if (rewardSection) {
-      rewardSection.style.display = 'block';
-    }
+    if (dogNameGroup) dogNameGroup.style.display = 'block';
+    if (rewardSection) rewardSection.style.display = 'block';
   }
 }
 
-// Inicializar el mapa con Leaflet
 function initReportMap() {
   if (reportMap) return;
   
-  // Cargar Leaflet si no está disponible
   if (typeof L === 'undefined') {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -179,7 +167,6 @@ function createMap() {
   });
 }
 
-// Reverse geocoding para obtener dirección desde coordenadas
 async function reverseGeocode(lat, lon) {
   try {
     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
@@ -193,7 +180,6 @@ async function reverseGeocode(lat, lon) {
   }
 }
 
-// Drag and drop para fotos
 function setupDragAndDrop() {
   const dropZone = document.getElementById('upload-area');
   if (!dropZone) return;
@@ -215,14 +201,10 @@ function setupDragAndDrop() {
   
   dropZone.addEventListener('drop', (e) => {
     const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files);
-    }
+    if (files.length > 0) handleFileSelect(files);
   });
 }
 
-// En report.js, después de handleFileSelect
-// Sugerir raza automáticamente al subir fotos
 async function autoSuggestBreedOnUpload() {
   if (selectedFiles.length === 0) return;
   
@@ -250,7 +232,6 @@ async function autoSuggestBreedOnUpload() {
   }
 }
 
-// Modificar handleFileSelect para llamar a autoSuggestBreed
 function handleFileSelect(files) {
   const validTypes = ['image/jpeg', 'image/png'];
   const maxSize = 10 * 1024 * 1024;
@@ -268,11 +249,11 @@ function handleFileSelect(files) {
     addImagePreview(file);
   }
   
-  // Auto-detectar raza con IA automáticamente
   if (selectedFiles.length === 1) {
     setTimeout(() => autoSuggestBreedOnUpload(), 500);
   }
 }
+
 function addImagePreview(file) {
   const container = document.getElementById('image-preview-container');
   const reader = new FileReader();
@@ -324,7 +305,6 @@ function setType(t) {
     foundBtn.classList.add('active');
   }
   
-  // Actualizar campos visibles según el tipo
   updateFormFields();
 }
 
@@ -336,7 +316,6 @@ function previewReport() {
 }
 
 async function submitReport() {
-  // Verificar login nuevamente por seguridad
   if (!isLoggedIn()) {
     showToast('Please sign in to report a dog', '');
     openAuthModal();
@@ -349,7 +328,6 @@ async function submitReport() {
   const lat = document.getElementById('location-lat')?.value;
   const lon = document.getElementById('location-lon')?.value;
   
-  // Obtener el tipo (lost o found)
   const isLost = document.getElementById('type-lost').classList.contains('active');
   const reportType = isLost ? 'lost' : 'found';
   
@@ -365,7 +343,6 @@ async function submitReport() {
   
   showToast('Submitting report...', '');
   
-  // Subir fotos si hay
   let uploadedPhotos = [];
   if (selectedFiles.length > 0) {
     const formData = new FormData();
@@ -376,16 +353,22 @@ async function submitReport() {
         method: 'POST',
         body: formData
       });
+      
+      if (!uploadRes.ok) {
+        throw new Error(`Upload failed: ${uploadRes.status}`);
+      }
+      
       const uploadData = await uploadRes.json();
       uploadedPhotos = uploadData.files || [];
-      console.log('📸 Fotos subidas:', uploadedPhotos);
+      console.log('📸 Fotos subidas a Cloudinary:', uploadedPhotos);
     } catch (error) {
       console.error('Upload error:', error);
+      showToast('Error uploading photos, but continuing...', '');
     }
   }
   
   const reportData = {
-    user_id: getCurrentUser()?.id || null,  // 👈 AGREGAR ESTA LÍNEA
+    user_id: getCurrentUser()?.id || null,
     type: reportType,
     name: dogName || 'Unknown',
     breed: document.getElementById('breed')?.value || 'Unknown',
@@ -415,33 +398,34 @@ async function submitReport() {
       body: JSON.stringify(reportData)
     });
     
-    if (response.ok) {
-      // Calcular puntos según el tipo de reporte
-      const pointsToAdd = reportType === 'lost' ? 10 : 20;
-      const actionText = reportType === 'lost' ? 'lost dog' : 'found dog';
-      
-      // Actualizar puntos del usuario logueado
-      const currentUser = getCurrentUser();
-      if (currentUser) {
-        await updateUserPoints(currentUser.id, pointsToAdd, `Reported a ${actionText}: ${dogName || 'Unknown'}`);
-        await incrementUserReports(currentUser.id, reportType);
-        showToast(`Report saved! +${pointsToAdd} pts 🎉`, 'success');
-      } else {
-        showToast('Report saved! 🎉', 'success');
-      }
-      
-      // Recargar la página para mostrar los nuevos datos
-      setTimeout(() => {
-        location.reload();
-      }, 1500);
-      
-    } else {
-      throw new Error('Server error');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Server error: ${response.status} - ${errorText}`);
     }
+    
+    const result = await response.json();
+    console.log('✅ Reporte guardado:', result);
+    
+    const pointsToAdd = reportType === 'lost' ? 10 : 20;
+    const actionText = reportType === 'lost' ? 'lost dog' : 'found dog';
+    
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      await updateUserPoints(currentUser.id, pointsToAdd, `Reported a ${actionText}: ${dogName || 'Unknown'}`);
+      await incrementUserReports(currentUser.id, reportType);
+      showToast(`Report saved! +${pointsToAdd} pts 🎉`, 'success');
+    } else {
+      showToast('Report saved! 🎉', 'success');
+    }
+    
+    setTimeout(() => {
+      location.reload();
+    }, 1500);
+    
   } catch (error) {
     console.error('Submit error:', error);
     showToast('Error connecting to server. Report saved locally.', '');
-    // Guardar localmente como fallback
+    
     const reports = JSON.parse(localStorage.getItem('dogReports') || '[]');
     reports.push({ ...reportData, id: Date.now(), created_at: new Date().toISOString() });
     localStorage.setItem('dogReports', JSON.stringify(reports));
