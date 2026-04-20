@@ -316,15 +316,11 @@ function previewReport() {
 }
 
 async function submitReport() {
-  console.log('🔵 1. Iniciando submitReport');
-  
   if (!isLoggedIn()) {
     showToast('Please sign in to report a dog', '');
     openAuthModal();
     return;
   }
-  
-  console.log('🔵 2. Usuario logueado');
   
   const dogName = document.getElementById('dogName')?.value;
   const contactName = document.getElementById('contactName')?.value;
@@ -334,8 +330,6 @@ async function submitReport() {
   
   const isLost = document.getElementById('type-lost').classList.contains('active');
   const reportType = isLost ? 'lost' : 'found';
-  
-  console.log('🔵 3. Tipo de reporte:', reportType);
   
   if (!contactName || !email) {
     showToast('Please fill in your name and email!', '');
@@ -347,23 +341,18 @@ async function submitReport() {
     return;
   }
   
-  console.log('🔵 4. Validaciones pasadas');
   showToast('Submitting report...', '');
   
   let uploadedPhotos = [];
   if (selectedFiles.length > 0) {
-    console.log('🔵 5. Subiendo fotos, cantidad:', selectedFiles.length);
     const formData = new FormData();
     selectedFiles.forEach(file => formData.append('photos', file));
     
     try {
-      console.log('🔵 6. Enviando a:', `${API_URL}/api/upload`);
       const uploadRes = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
         body: formData
       });
-      
-      console.log('🔵 7. Respuesta upload status:', uploadRes.status);
       
       if (!uploadRes.ok) {
         throw new Error(`Upload failed: ${uploadRes.status}`);
@@ -373,87 +362,10 @@ async function submitReport() {
       uploadedPhotos = uploadData.files || [];
       console.log('📸 Fotos subidas a Cloudinary:', uploadedPhotos);
     } catch (error) {
-      console.error('❌ Upload error:', error);
+      console.error('Upload error:', error);
       showToast('Error uploading photos, but continuing...', '');
     }
-  } else {
-    console.log('🔵 5. No hay fotos para subir');
   }
-  
-  const reportData = {
-    user_id: getCurrentUser()?.id || null,
-    type: reportType,
-    name: dogName || 'Unknown',
-    breed: document.getElementById('breed')?.value || 'Unknown',
-    color: document.getElementById('color')?.value || 'Unknown',
-    size: document.getElementById('size')?.value || 'Medium',
-    gender: document.getElementById('gender')?.value || 'Unknown',
-    age: document.getElementById('age')?.value || 'Unknown',
-    description: document.getElementById('description')?.value || '',
-    location_address: document.getElementById('location-address')?.value || '',
-    location_lat: parseFloat(lat),
-    location_lon: parseFloat(lon),
-    date: document.getElementById('date')?.value || new Date().toISOString().split('T')[0],
-    time: document.getElementById('time')?.value || '',
-    reward: document.getElementById('reward')?.value || '',
-    contact_name: contactName,
-    contact_phone: document.getElementById('phone')?.value || '',
-    contact_email: email,
-    photos: uploadedPhotos,
-    emoji: '🐕',
-    status: isLost ? 'Lost' : 'Found'
-  };
-  
-  console.log('🔵 8. Datos del reporte:', reportData);
-  
-  try {
-    console.log('🔵 9. Enviando a:', `${API_URL}/api/reports`);
-    const response = await fetch(`${API_URL}/api/reports`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reportData)
-    });
-    
-    console.log('🔵 10. Status response:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Error response:', errorText);
-      throw new Error(`Server error: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    console.log('✅ Reporte guardado:', result);
-    
-    const pointsToAdd = reportType === 'lost' ? 10 : 20;
-    const actionText = reportType === 'lost' ? 'lost dog' : 'found dog';
-    
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      await updateUserPoints(currentUser.id, pointsToAdd, `Reported a ${actionText}: ${dogName || 'Unknown'}`);
-      await incrementUserReports(currentUser.id, reportType);
-      showToast(`Report saved! +${pointsToAdd} pts 🎉`, 'success');
-    } else {
-      showToast('Report saved! 🎉', 'success');
-    }
-    
-    setTimeout(() => {
-      location.reload();
-    }, 1500);
-    
-  } catch (error) {
-    console.error('❌ Submit error:', error);
-    showToast('Error connecting to server. Report saved locally.', '');
-    
-    const reports = JSON.parse(localStorage.getItem('dogReports') || '[]');
-    reports.push({ ...reportData, id: Date.now(), created_at: new Date().toISOString() });
-    localStorage.setItem('dogReports', JSON.stringify(reports));
-    
-    setTimeout(() => {
-      location.reload();
-    }, 1500);
-  }
-}
   
   const reportData = {
     user_id: getCurrentUser()?.id || null,
