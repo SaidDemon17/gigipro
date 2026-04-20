@@ -292,11 +292,41 @@ app.put('/api/users/:id', async (req, res) => {
 // ENDPOINTS DE REPORTES
 // ============================================
 
-// Subir fotos
-app.post('/api/upload', upload.array('photos', 5), (req, res) => {
-  console.log('📸 Archivos subidos:', req.files?.length || 0);
-  const files = req.files.map(f => `/uploads/${f.filename}`);
-  res.json({ success: true, files });
+// Subir fotos a Cloudinary
+app.post('/api/upload', upload.array('photos', 5), async (req, res) => {
+  console.log('📸 Archivos recibidos:', req.files?.length || 0);
+  
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, error: 'No files uploaded' });
+  }
+  
+  try {
+    const uploadedFiles = [];
+    
+    for (const file of req.files) {
+      // Subir a Cloudinary
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: 'pawfinder',
+        transformation: [
+          { width: 800, height: 800, crop: 'limit' },
+          { quality: 'auto' },
+          { fetch_format: 'auto' }
+        ]
+      });
+      
+      uploadedFiles.push(result.secure_url);
+      
+      // Eliminar archivo temporal
+      fs.unlinkSync(file.path);
+    }
+    
+    console.log('✅ Archivos subidos a Cloudinary:', uploadedFiles);
+    res.json({ success: true, files: uploadedFiles });
+    
+  } catch (error) {
+    console.error('❌ Error subiendo a Cloudinary:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Obtener todos los reportes (SIN user_id para evitar error)
