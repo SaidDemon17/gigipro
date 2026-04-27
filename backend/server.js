@@ -66,6 +66,7 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         type VARCHAR(10) NOT NULL,
+        status VARCHAR(20) DEFAULT 'active',  // 👈 NUEVO: active, reunited
         name VARCHAR(100),
         breed VARCHAR(100),
         color VARCHAR(50),
@@ -196,7 +197,58 @@ app.post('/api/users/login', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+// Marcar un perro como reunido
+app.put('/api/reports/:id/reunite', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    
+    // Verificar que el usuario es el dueño del reporte
+    const report = await sql`SELECT user_id FROM dog_reports WHERE id = ${id}`;
+    
+    if (report.length === 0) {
+      return res.status(404).json({ success: false, error: 'Reporte no encontrado' });
+    }
+    
+    if (report[0].user_id !== userId) {
+      return res.status(403).json({ success: false, error: 'No eres el dueño de este reporte' });
+    }
+    
+    // Actualizar estado
+    const result = await sql`
+      UPDATE dog_reports 
+      SET status = 'reunited' 
+      WHERE id = ${id} 
+      RETURNING *
+    `;
+    
+    // Sumar +100 puntos al usuario que ayudó (el que encontró al perro)
+    // Aquí necesitarías saber quién ayudó, no el dueño
+    
+    res.json({ success: true, report: result[0] });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
+// Endpoint para obtener estadísticas
+app.get('/api/stats', async (req, res) => {
+  try {
+    const lostCount = await sql`SELECT COUNT(*) FROM dog_reports WHERE type = 'lost' AND status = 'active'`;
+    const foundCount = await sql`SELECT COUNT(*) FROM dog_reports WHERE type = 'found' AND status = 'active'`;
+    const reunitedCount = await sql`SELECT COUNT(*) FROM dog_reports WHERE status = 'reunited'`;
+    
+    res.json({
+      lost: parseInt(lostCount[0].count),
+      found: parseInt(foundCount[0].count),
+      reunited: parseInt(reunitedCount[0].count)
+    });
+  } catch (error) {
+    console.error('Error obteniendo estadísticas:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 // Obtener ranking
 app.get('/api/users/ranking', async (req, res) => {
   try {
@@ -292,11 +344,41 @@ app.put('/api/users/:id', async (req, res) => {
 // ENDPOINTS DE REPORTES
 // ============================================
 
-// Subir fotos
-app.post('/api/upload', upload.array('photos', 5), (req, res) => {
-  console.log('📸 Archivos subidos:', req.files?.length || 0);
-  const files = req.files.map(f => `/uploads/${f.filename}`);
-  res.json({ success: true, files });
+// Subir fotos a Cloudinary
+app.post('/api/upload', upload.array('photos', 5), async (req, res) => {
+  console.log('📸 Archivos recibidos:', req.files?.length || 0);
+  
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, error: 'No files uploaded' });
+  }
+  
+  try {
+    const uploadedFiles = [];
+    
+    for (const file of req.files) {
+      // Subir a Cloudinary
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: 'pawfinder',
+        transformation: [
+          { width: 800, height: 800, crop: 'limit' },
+          { quality: 'auto' },
+          { fetch_format: 'auto' }
+        ]
+      });
+      
+      uploadedFiles.push(result.secure_url);
+      
+      // Eliminar archivo temporal
+      fs.unlinkSync(file.path);
+    }
+    
+    console.log('✅ Archivos subidos a Cloudinary:', uploadedFiles);
+    res.json({ success: true, files: uploadedFiles });
+    
+  } catch (error) {
+    console.error('❌ Error subiendo a Cloudinary:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Obtener todos los reportes (SIN user_id para evitar error)
@@ -304,7 +386,8 @@ app.get('/api/reports', async (req, res) => {
   try {
     const result = await sql`
       SELECT 
-        id, type, name, breed, color, size, gender, age, description,
+        id, user_id, type, status, name, breed, color, size, gender, age, description,
+        physical, personality,
         location_address, location_lat, location_lon,
         report_date as date, report_time as time, reward,
         contact_name, contact_phone, contact_email, photos,
@@ -324,22 +407,24 @@ app.get('/api/reports', async (req, res) => {
 app.post('/api/reports', async (req, res) => {
   try {
     const data = req.body;
-    console.log('📝 Guardando reporte:', data.name);
+    console.log('📝 Guardando reporte:', data.name, 'User ID:', data.user_id);
     
     const result = await sql`
       INSERT INTO dog_reports (
-        type, name, breed, color, size, gender, age, description,
-        location_address, location_lat, location_lon,
-        report_date, report_time, reward,
-        contact_name, contact_phone, contact_email, photos
-      ) VALUES (
-        ${data.type}, ${data.name}, ${data.breed}, ${data.color},
-        ${data.size}, ${data.gender}, ${data.age}, ${data.description},
-        ${data.location_address}, ${data.location_lat}, ${data.location_lon},
-        ${data.date}, ${data.time}, ${data.reward},
-        ${data.contact_name}, ${data.contact_phone}, ${data.contact_email},
-        ${data.photos || []}
-      ) RETURNING *;
+      user_id, type, status, name, breed, color, size, gender, age, description,
+      physical, personality,
+      location_address, location_lat, location_lon,
+      report_date, report_time, reward,
+      contact_name, contact_phone, contact_email, photos
+    ) VALUES (
+      ${data.user_id || null}, ${data.type}, 'active', ${data.name}, ${data.breed}, ${data.color},
+      ${data.size}, ${data.gender}, ${data.age}, ${data.description},
+      ${data.physical || ''}, ${data.personality || ''},
+      ${data.location_address}, ${data.location_lat}, ${data.location_lon},
+      ${data.date}, ${data.time}, ${data.reward},
+      ${data.contact_name}, ${data.contact_phone}, ${data.contact_email},
+      ${data.photos || []}
+    ) RETURNING *;
     `;
     
     console.log('✅ Reporte guardado ID:', result[0].id);
@@ -349,7 +434,56 @@ app.post('/api/reports', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+// Obtener comentarios de un perro
+app.get('/api/dogs/:dogId/comments', async (req, res) => {
+  try {
+    const { dogId } = req.params;
+    const comments = await sql`
+      SELECT 
+        c.id, c.user_id, c.user_name, c.comment, c.ai_match_similarity, c.created_at,
+        u.avatar
+      FROM dog_comments c
+      LEFT JOIN users u ON c.user_id = u.id
+      WHERE c.dog_report_id = ${dogId}
+      ORDER BY c.created_at DESC
+    `;
+    res.json(comments);
+  } catch (error) {
+    console.error('Error obteniendo comentarios:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// Agregar un comentario
+app.post('/api/dogs/:dogId/comments', async (req, res) => {
+  try {
+    const { dogId } = req.params;
+    const { userId, userName, comment, aiMatchSimilarity } = req.body;
+    
+    const result = await sql`
+      INSERT INTO dog_comments (dog_report_id, user_id, user_name, comment, ai_match_similarity)
+      VALUES (${dogId}, ${userId || null}, ${userName}, ${comment}, ${aiMatchSimilarity || null})
+      RETURNING *
+    `;
+    
+    // Sumar +5 puntos al usuario por comentar
+    if (userId) {
+      await sql`
+        UPDATE users SET points = points + 5 
+        WHERE id = ${userId}
+      `;
+      await sql`
+        INSERT INTO user_activities (user_id, action, points)
+        VALUES (${userId}, 'Comentó en un reporte', 5)
+      `;
+    }
+    
+    res.json({ success: true, comment: result[0] });
+  } catch (error) {
+    console.error('Error agregando comentario:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
