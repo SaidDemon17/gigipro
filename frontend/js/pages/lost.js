@@ -6,8 +6,7 @@ async function renderLostGrid() {
   
   // Usar window.ALL_DOGS
   const allDogs = window.ALL_DOGS || [];
-  const lost = allDogs.filter(d => d.type === 'lost');
-  
+  const lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');  
   const lostHTML = `
     <div class="filter-bar">
       <input type="text" id="searchLost" placeholder="Search by name, breed, location…" onkeyup="filterLost()"/>

@@ -4,8 +4,7 @@ async function renderFoundGrid() {
   }
   
   const allDogs = window.ALL_DOGS || [];
-  const found = allDogs.filter(d => d.type === 'found');
-  
+  const found = allDogs.filter(d => d.type === 'found' && d.status !== 'reunited');  
   const foundHTML = `
     <div class="filter-bar">
       <input type="text" id="searchFound" placeholder="Search by location, description…" onkeyup="filterFound()"/>

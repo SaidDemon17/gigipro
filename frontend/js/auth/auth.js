@@ -1,3 +1,5 @@
+// js/auth/auth.js
+
 function renderAuthModal() {
   // Verificar si ya existe el modal
   if (document.querySelector('.auth-modal-overlay')) return;
@@ -8,62 +10,62 @@ function renderAuthModal() {
         <button class="auth-modal-close" onclick="closeAuthModalDirect()">✕</button>
         
         <div class="auth-tabs">
-          <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
-          <button class="auth-tab" onclick="switchAuthTab('register')">Sign Up</button>
+          <button class="auth-tab active" onclick="switchAuthTab('login')">Iniciar Sesión</button>
+          <button class="auth-tab" onclick="switchAuthTab('register')">Registrarse</button>
         </div>
         
         <!-- Login Form -->
         <div id="login-form" class="auth-form active">
-          <h2>Welcome Back</h2>
-          <p>Sign in to report dogs, earn points, and help reunite families.</p>
+          <h2>Bienvenido de Vuelta</h2>
+          <p>Inicia sesión para reportar perros, ganar puntos y ayudar a reunir familias.</p>
           
           <div class="form-group">
             <label>Email</label>
-            <input type="email" id="login-email" name="login-email" placeholder="you@example.com"/>
+            <input type="email" id="login-email" name="login-email" placeholder="tu@email.com"/>
           </div>
           <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="login-password" name="login-password" placeholder="Your password"/>
+            <label>Contraseña</label>
+            <input type="password" id="login-password" name="login-password" placeholder="Tu contraseña"/>
           </div>
           
           <button class="btn btn-primary" style="width:100%;padding:12px" onclick="handleLogin()">
-            Sign In
+            Iniciar Sesión
           </button>
           
           <div class="auth-demo">
-            <p>Demo Account:</p>
+            <p>Cuenta de Demostración:</p>
             <code>demo@pawfinder.com / demo123</code>
           </div>
         </div>
         
         <!-- Register Form -->
         <div id="register-form" class="auth-form">
-          <h2>Create Account</h2>
-          <p>Join our community of pet lovers helping reunite lost dogs.</p>
+          <h2>Crear Cuenta</h2>
+          <p>Únete a nuestra comunidad de amantes de mascotas ayudando a reunir perros perdidos.</p>
           
           <div class="form-group">
-            <label>Full Name</label>
-            <input type="text" id="register-name" name="register-name" placeholder="Your name"/>
+            <label>Nombre Completo</label>
+            <input type="text" id="register-name" name="register-name" placeholder="Tu nombre"/>
           </div>
           <div class="form-group">
             <label>Email</label>
-            <input type="email" id="register-email" name="register-email" placeholder="you@example.com"/>
+            <input type="email" id="register-email" name="register-email" placeholder="tu@email.com"/>
           </div>
           <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="register-password" name="register-password" placeholder="At least 6 characters"/>
+            <label>Contraseña</label>
+            <input type="password" id="register-password" name="register-password" placeholder="Mínimo 6 caracteres"/>
           </div>
           <div class="form-group">
-            <label>Confirm Password</label>
-            <input type="password" id="register-confirm" name="register-confirm" placeholder="Confirm password"/>
+            <label>Confirmar Contraseña</label>
+            <input type="password" id="register-confirm" name="register-confirm" placeholder="Confirma tu contraseña"/>
           </div>
           
           <button class="btn btn-primary" style="width:100%;padding:12px" onclick="handleRegister()">
-            Create Account
+            Crear Cuenta
           </button>
           
           <p class="auth-terms">
-            By signing up, you agree to our Terms of Service and Privacy Policy.
+            Al registrarte, aceptas nuestros Términos de Servicio y Política de Privacidad.
           </p>
         </div>
       </div>
@@ -107,18 +109,14 @@ function switchAuthTab(tab) {
 }
 
 async function handleLogin() {
-  // Buscar los campos dentro del modal activo
-  const emailInput = document.querySelector('#login-form #login-email, #login-form input[type="email"]');
-  const passwordInput = document.querySelector('#login-form #login-password, #login-form input[type="password"]');
+  const emailInput = document.querySelector('#login-form #login-email');
+  const passwordInput = document.querySelector('#login-form #login-password');
   
   const email = emailInput?.value.trim();
   const password = passwordInput?.value;
   
-  console.log('Email encontrado:', email);
-  console.log('Password encontrado:', password ? '***' : 'vacío');
-  
   if (!email || !password) {
-    showToast('Please fill in all fields', '');
+    showToast('Por favor completa todos los campos', '');
     return;
   }
   
@@ -127,7 +125,7 @@ async function handleLogin() {
   const result = await loginUser(email, password);
   
   if (result.success) {
-    showToast(`Welcome back, ${result.user.name}! 🐾`, 'success');
+    showToast(`¡Bienvenido de vuelta, ${result.user.name}! 🐾`, 'success');
     closeAuthModalDirect();
     updateNavForLoggedInUser();
     
@@ -139,8 +137,8 @@ async function handleLogin() {
     showToast(result.error, '');
   }
 }
+
 async function handleRegister() {
-  // Buscar los campos dentro del modal activo
   const nameInput = document.querySelector('#register-form #register-name');
   const emailInput = document.querySelector('#register-form #register-email');
   const passwordInput = document.querySelector('#register-form #register-password');
@@ -151,20 +149,18 @@ async function handleRegister() {
   const password = passwordInput?.value;
   const confirm = confirmInput?.value;
   
-  console.log('Registro - Name:', name, 'Email:', email);
-  
   if (!name || !email || !password) {
-    showToast('Please fill in all fields', '');
+    showToast('Por favor completa todos los campos', '');
     return;
   }
   
   if (password.length < 6) {
-    showToast('Password must be at least 6 characters', '');
+    showToast('La contraseña debe tener al menos 6 caracteres', '');
     return;
   }
   
   if (password !== confirm) {
-    showToast('Passwords do not match', '');
+    showToast('Las contraseñas no coinciden', '');
     return;
   }
   
@@ -173,7 +169,7 @@ async function handleRegister() {
   const result = await registerUser(email, password, name);
   
   if (result.success) {
-    showToast(`Account created! Welcome ${name}! 🎉`, 'success');
+    showToast(`¡Cuenta creada! Bienvenido ${name}! 🎉`, 'success');
     const loginResult = await loginUser(email, password);
     if (loginResult.success) {
       closeAuthModalDirect();
@@ -194,31 +190,94 @@ function updateNavForLoggedInUser() {
   const currentUser = getCurrentUser();
   
   if (currentUser) {
+    const role = getUserRole(currentUser.points);
+    const avatarUrl = currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name)}&background=E85D04&color=fff`;
+    
     navActions.innerHTML = `
-      <button class="btn btn-primary" onclick="showPage('report')">+ Report Dog</button>
-      <div class="user-menu">
-        <button class="btn btn-outline logout-btn" onclick="handleLogout()">
-          🚪 Cerrar Sesión
+      <button class="btn btn-primary" onclick="showPage('report')">+ Reportar Perro</button>
+      <div class="user-dropdown">
+        <button class="user-avatar-btn" onclick="toggleUserMenu()">
+          <img src="${avatarUrl}" alt="${currentUser.name}" class="user-avatar-img">
+          <span class="user-name">${currentUser.name.split(' ')[0]}</span>
+          <span class="dropdown-arrow">▼</span>
         </button>
+        <div class="user-dropdown-menu" id="user-dropdown-menu">
+          <div class="dropdown-header">
+            <img src="${avatarUrl}" alt="${currentUser.name}" class="dropdown-avatar">
+            <div class="dropdown-user-info">
+              <div class="dropdown-user-name">${currentUser.name}</div>
+              <div class="dropdown-user-role" style="color:${role.color}">${role.name}</div>
+              <div class="dropdown-user-points">🏆 ${currentUser.points} puntos</div>
+            </div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <a href="#" onclick="showPage('account'); closeUserMenu()">
+            <span class="menu-icon">👤</span> Mi Perfil
+          </a>
+          <a href="#" onclick="showMyReports(); closeUserMenu()">
+            <span class="menu-icon">📋</span> Mis Reportes
+          </a>
+          <a href="#" onclick="showSettings(); closeUserMenu()">
+            <span class="menu-icon">⚙️</span> Configuración
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" onclick="handleLogout(); closeUserMenu()" class="logout-item">
+            <span class="menu-icon">🚪</span> Cerrar Sesión
+          </a>
+        </div>
       </div>
     `;
   } else {
     navActions.innerHTML = `
-      <button class="btn btn-primary" onclick="if(isLoggedIn()){showPage('report')}else{showToast('Please sign in first','');openAuthModal()}">+ Report Dog</button>
-      <button class="btn btn-outline" onclick="openAuthModal()">Sign In</button>
+      <button class="btn btn-primary" onclick="if(isLoggedIn()){showPage('report')}else{showToast('Por favor inicia sesión primero','');openAuthModal()}">+ Reportar Perro</button>
+      <button class="btn btn-outline" onclick="openAuthModal()">
+        <span class="login-icon">👤</span> Iniciar Sesión
+      </button>
     `;
   }
+}
+
+// Función para mostrar/ocultar el menú desplegable
+function toggleUserMenu() {
+  const menu = document.getElementById('user-dropdown-menu');
+  if (menu) {
+    menu.classList.toggle('open');
+  }
+}
+
+function closeUserMenu() {
+  const menu = document.getElementById('user-dropdown-menu');
+  if (menu) {
+    menu.classList.remove('open');
+  }
+}
+
+// Cerrar menú al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const menu = document.getElementById('user-dropdown-menu');
+  const btn = document.querySelector('.user-avatar-btn');
+  if (menu && btn && !btn.contains(event.target) && !menu.contains(event.target)) {
+    menu.classList.remove('open');
+  }
+});
+
+// Funciones temporales para opciones del menú
+function showMyReports() {
+  showToast('Mis Reportes - En desarrollo', '');
+}
+
+function showSettings() {
+  showToast('Configuración - En desarrollo', '');
 }
 
 function handleLogout() {
   logoutUser();
   updateNavForLoggedInUser();
-  showToast('You have been logged out. Come back soon! 👋', 'success');
-  // Redirigir al home
+  showToast('Has cerrado sesión. ¡Vuelve pronto! 👋', 'success');
   showPage('home');
 }
 
-// Exportar funciones
+// Exportar funciones globales
 window.openAuthModal = openAuthModal;
 window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
@@ -227,3 +286,7 @@ window.closeAuthModal = closeAuthModal;
 window.closeAuthModalDirect = closeAuthModalDirect;
 window.updateNavForLoggedInUser = updateNavForLoggedInUser;
 window.handleLogout = handleLogout;
+window.toggleUserMenu = toggleUserMenu;
+window.closeUserMenu = closeUserMenu;
+window.showMyReports = showMyReports;
+window.showSettings = showSettings;

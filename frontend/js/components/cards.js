@@ -1,17 +1,27 @@
 function dogCard(dog, showBtn = true) {
   const rewardBadge = dog.reward && dog.reward !== '' ? `<span class="badge badge-reward">💰 ${dog.reward}</span>` : '';
-  const typeBadge = dog.type === 'lost' ? `<span class="badge badge-lost">LOST</span>` : `<span class="badge badge-found">FOUND</span>`;
   
-  const dogName = dog.name || 'Unknown';
-  const dogBreed = dog.breed || 'Unknown';
-  const dogSize = dog.size || 'Medium';
-  const dogLocation = dog.location || dog.location_address || 'Unknown location';
+  // ✅ CORREGIDO: declarar typeBadge solo una vez
+  let typeBadge = '';
+  if (dog.status === 'reunited') {
+    typeBadge = `<span class="badge badge-reunited">✅ REUNIDO</span>`;
+  } else if (dog.type === 'lost') {
+    typeBadge = `<span class="badge badge-lost">PERDIDO</span>`;
+  } else {
+    typeBadge = `<span class="badge badge-found">ENCONTRADO</span>`;
+  }
+  
+  const dogName = dog.name || 'Desconocido';
+  const dogBreed = dog.breed || 'Desconocida';
+  const dogSize = dog.size || 'Mediano';
+  const dogLocation = dog.location || dog.location_address || 'Ubicación desconocida';
   const dogDate = dog.date || new Date().toISOString().split('T')[0];
-  const dogDesc = dog.desc || dog.description || 'No description available';
+  const dogDesc = dog.desc || dog.description || 'Sin descripción disponible';
   
   // Verificar si tiene fotos
   const hasPhotos = dog.photos && dog.photos.length > 0;
-  const firstPhoto = hasPhotos ? `https://gigipro.onrender.com${dog.photos[0]}` : null;
+  // ✅ CORREGIDO: NO concatenar la URL, usar directamente la de Cloudinary
+  const firstPhoto = hasPhotos ? dog.photos[0] : null;
   
   // Mostrar foto real o emoji
   const imageHtml = firstPhoto 
@@ -19,8 +29,8 @@ function dogCard(dog, showBtn = true) {
     : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">${dog.emoji || '🐕'}</div>`;
   
   const btn = dog.type === 'lost'
-    ? `<button class="btn btn-primary btn-sm" style="width:100%" onclick="showDetail(${dog.id})">ℹ️ I have information</button>`
-    : `<button class="btn btn-outline btn-sm" style="width:100%" onclick="showDetail(${dog.id})">🐾 This might be my dog</button>`;
+    ? `<button class="btn btn-primary btn-sm" style="width:100%" onclick="showDetail(${dog.id})">ℹ️ Tengo información</button>`
+    : `<button class="btn btn-outline btn-sm" style="width:100%" onclick="showDetail(${dog.id})">🐾 Este podría ser mi perro</button>`;
   
   return `
   <div class="dog-card" onclick="showDetail(${dog.id})">

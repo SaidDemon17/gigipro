@@ -22,7 +22,7 @@ async function loadReportsFromBackend() {
         color: report.color || 'Unknown',
         size: report.size || 'Medium',
         location: report.location_address || report.location || 'Unknown',
-        date: report.report_date || report.date || new Date().toISOString().split('T')[0],
+        date: report.report_date ? report.report_date.split('T')[0] : (report.date || new Date().toISOString().split('T')[0]),
         reward: report.reward || '',
         desc: report.description || 'No description',
         emoji: '🐕',

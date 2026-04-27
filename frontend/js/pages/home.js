@@ -1,12 +1,30 @@
+// frontend/js/pages/home.js
+async function getStats() {
+  try {
+    const response = await fetch(`${API_URL}/api/stats`);
+    const stats = await response.json();
+    return stats;
+  } catch (error) {
+    console.error('Error obteniendo stats:', error);
+    return { lost: 0, found: 0, reunited: 0 };
+  }
+}
 async function renderHomeGrids() {
   // Cargar reportes desde el backend
   if (typeof window.loadReportsFromBackend === 'function') {
     await window.loadReportsFromBackend();
   }
   
-  // Obtener todos los perros (estáticos + reportes de Neon)
+  // Obtener todos los perros
   const allDogs = window.ALL_DOGS || [];
-  
+  // Obtener perros reunidos recientemente
+  const recentReunited = [...allDogs]
+  .filter(d => d.status === 'reunited')
+  .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
+  .slice(0, 5);
+  // Obtener estadísticas reales
+  const stats = await getStats();
+
   // Filtrar perros perdidos y encontrados
   const allLost = allDogs.filter(d => d.type === 'lost');
   const allFound = allDogs.filter(d => d.type === 'found');
@@ -15,188 +33,232 @@ async function renderHomeGrids() {
   const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   
+  // Obtener top 3 del ranking
+  let top3 = [];
+  if (typeof getRanking === 'function') {
+    const ranking = await getRanking();
+    top3 = ranking.slice(0, 3);
+  }
+  
   const homeHTML = `
-    <!-- Hero -->
-    <div class="hero">
-      <div class="hero-icon">🐾</div>
-      <h1>Help Reunite Lost Dogs<br><span>With Their Families</span></h1>
-      <p>PawFinder is a community-powered platform that uses AI to match lost and found dogs, helping bring beloved pets back home faster.</p>
-      <div class="hero-btns">
-        <button class="btn btn-primary" onclick="showPage('report')">♥ Report a Dog</button>
-        <button class="btn btn-outline" onclick="showPage('lost')">🔍 Browse Lost Dogs</button>
-      </div>
-      <div class="search-bar">
-        <div class="search-field">
-          <label>Location</label>
-          <input type="text" placeholder="City or area…" id="home-location"/>
-        </div>
-        <div class="search-field">
-          <label>Breed</label>
-          <select id="home-breed">
-            <option>Any breed</option>
-            <option>Golden Retriever</option>
-            <option>Labrador</option>
-            <option>German Shepherd</option>
-            <option>Poodle</option>
-            <option>Beagle</option>
-          </select>
-        </div>
-        <div class="search-field">
-          <label>Color</label>
-          <select id="home-color">
-            <option>Any color</option>
-            <option>Brown</option>
-            <option>Black</option>
-            <option>White</option>
-            <option>Golden</option>
-            <option>Mixed</option>
-          </select>
-        </div>
-        <div class="search-field">
-          <label>Size</label>
-          <select id="home-size">
-            <option>Any size</option>
-            <option>Small</option>
-            <option>Medium</option>
-            <option>Large</option>
-          </select>
-        </div>
-        <div class="search-field">
-          <label>Reward</label>
-          <select id="home-reward">
-            <option>Any</option>
-            <option>With reward</option>
-            <option>No reward</option>
-          </select>
-        </div>
-        <div class="search-field" style="display:flex;align-items:flex-end">
-          <button class="btn btn-primary" style="width:100%" onclick="searchHomeDogs()">Search</button>
+    <!-- Hero Section - Nuevo diseño -->
+    <div class="hero-new">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-badge">🐾 PawFinder</div>
+        <h1>Ayuda a reunir <span>perros perdidos</span><br>con sus familias</h1>
+        <p>Únete a nuestra comunidad y utiliza nuestra inteligencia artificial para encontrar mascotas perdidas. Cada reporte cuenta, cada reencuentro es una historia de éxito.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary btn-large" onclick="showPage('report')">📝 Reportar Perro</button>
+          <button class="btn btn-outline-light btn-large" onclick="showPage('lost')">🔍 Buscar Perros</button>
         </div>
       </div>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats Bar -->
     <div class="stats-bar">
       <div class="stats-inner">
-        <div><div class="stat-num">${allLost.length}</div><div class="stat-label">Lost Dogs Reported</div></div>
-        <div><div class="stat-num gold">${allFound.length}</div><div class="stat-label">Found Dogs Reported</div></div>
-        <div><div class="stat-num">142</div><div class="stat-label">Happy Reunions</div></div>
-        <div><div class="stat-num dark">${allDogs.length}</div><div class="stat-label">Total Reports</div></div>
+        <div class="stat-item">
+          <div class="stat-number">${allLost.length}</div>
+          <div class="stat-label">Perros Perdidos</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number gold">${allFound.length}</div>
+          <div class="stat-label">Perros Encontrados</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">142</div>
+          <div class="stat-label">Reencuentros Felices</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number dark">${allDogs.length}</div>
+          <div class="stat-label">Total Reportes</div>
+        </div>
       </div>
     </div>
 
     <!-- Recently Lost -->
     <div class="section">
       <div class="section-header">
-        <div><div class="section-title">Recently Lost Dogs</div><div class="section-sub">Help these dogs find their way home</div></div>
-        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">View All →</button>
+        <div>
+          <div class="section-title">Perros Perdidos Recientemente</div>
+          <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
       </div>
       <div class="dogs-grid" id="home-lost-grid"></div>
     </div>
 
     <!-- Recently Found -->
-    <div class="section" style="padding-top:0">
+    <div class="section">
       <div class="section-header">
-        <div><div class="section-title">Recently Found Dogs</div><div class="section-sub">Is one of these your furry friend?</div></div>
-        <button class="btn btn-outline btn-sm" onclick="showPage('found')">View All →</button>
+        <div>
+          <div class="section-title">Perros Encontrados Recientemente</div>
+          <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
       </div>
       <div class="dogs-grid" id="home-found-grid"></div>
     </div>
 
-    <!-- How it works -->
-    <div class="how-section">
-      <div class="how-title">How It Works</div>
-      <div class="how-sub">Our AI-powered platform makes finding lost dogs easier</div>
-      <div class="how-cards">
-        <div class="how-card red">
-          <div class="how-card-icon red">🐾</div>
-          <h3>Report a Dog</h3>
-          <p>Upload photos and details of a lost or found dog. Our AI analyzes the images to extract identifying features.</p>
+    <!-- Nueva Sección: Nuestra Misión -->
+    <div class="mission-full-section">
+      <div class="mission-full-container">
+        <div class="mission-full-text">
+          <span class="mission-tag">🌟 Nuestra Razón de Ser</span>
+          <h2>Una comunidad unida <span>para nunca rendirse</span></h2>
+          <p>En PawFinder, sabemos que perder una mascota es como perder un familiar. Por eso creamos una plataforma que combina <strong>tecnología de inteligencia artificial</strong> con el <strong>poder de una comunidad solidaria</strong>. Juntos, podemos acortar distancias y acelerar los reencuentros.</p>
+          <div class="mission-features">
+            <div class="mission-feature">
+              <div class="mission-feature-icon">🤖</div>
+              <div>
+                <h4>IA Avanzada</h4>
+                <p>Comparación inteligente de fotos y datos para encontrar coincidencias.</p>
+              </div>
+            </div>
+            <div class="mission-feature">
+              <div class="mission-feature-icon">📍</div>
+              <div>
+                <h4>Geolocalización</h4>
+                <p>Mapas interactivos para ver perros perdidos cerca de ti.</p>
+              </div>
+            </div>
+            <div class="mission-feature">
+              <div class="mission-feature-icon">🏆</div>
+              <div>
+                <h4>Recompensas</h4>
+                <p>Gana puntos y reconocimiento por ayudar a reunir familias.</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="how-card">
-          <div class="how-card-icon gold">🔍</div>
-          <h3>AI Matching</h3>
-          <p>Our AI compares lost and found dogs based on appearance, location, and timing to find potential matches.</p>
-        </div>
-        <div class="how-card red">
-          <div class="how-card-icon red">✅</div>
-          <h3>Reunite</h3>
-          <p>Connect with the owner or finder through our secure messaging. Earn points and climb the leaderboard for helping!</p>
+        <div class="mission-full-image">
+          <div class="mission-stats-card">
+            <div class="stat-circle">
+              <div class="stat-circle-number">+92%</div>
+              <div class="stat-circle-label">Tasa de éxito</div>
+            </div>
+            <div class="stat-circle">
+              <div class="stat-circle-number">24h</div>
+              <div class="stat-circle-label">Respuesta promedio</div>
+            </div>
+            <div class="stat-circle">
+              <div class="stat-circle-number">+2.5k</div>
+              <div class="stat-circle-label">Miembros activos</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Community -->
+    <!-- How It Works -->
+    <div class="how-section">
+      <div class="how-title">Cómo Funciona</div>
+      <div class="how-sub">Tres simples pasos para reunir a una familia</div>
+      <div class="how-cards">
+        <div class="how-card">
+          <div class="how-card-step">PASO 1</div>
+          <div class="how-card-icon">📝</div>
+          <h3>Reportar</h3>
+          <p>Sube una foto y los detalles de tu mascota perdida o encontrada.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-card-step">PASO 2</div>
+          <div class="how-card-icon">🤖</div>
+          <h3>Analizar</h3>
+          <p>Nuestra IA compara la información con otros reportes en tu zona.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-card-step">PASO 3</div>
+          <div class="how-card-icon">💚</div>
+          <h3>Reencontrar</h3>
+          <p>Recibe notificaciones de posibles coincidencias y actúa rápido.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community Section -->
     <div class="community-section">
       <div class="community-inner">
         <div class="community-text">
-          <h2>Community-Powered<br><span>Pet Recovery</span></h2>
-          <p>Join thousands of pet lovers working together to reunite lost dogs with their families. Every contribution matters.</p>
+          <h2>Recuperación de Mascotas<br><span>Impulsada por la Comunidad</span></h2>
+          <p>Únete a miles de amantes de mascotas trabajando juntos para reunir perros perdidos con sus familias. Cada contribución cuenta.</p>
           <ul class="feature-list">
             <li class="feature-item">
               <div class="feature-icon">📍</div>
-              <div><div class="feature-name">Interactive Map</div><div class="feature-desc">View lost and found dogs on an interactive map to find pets in your area.</div></div>
+              <div>
+                <div class="feature-name">Mapa Interactivo</div>
+                <div class="feature-desc">Visualiza perros perdidos y encontrados en tiempo real.</div>
+              </div>
             </li>
             <li class="feature-item">
               <div class="feature-icon">🏆</div>
-              <div><div class="feature-name">Earn Rewards</div><div class="feature-desc">Get points for reporting, commenting, and helping reunite dogs. Climb the leaderboard!</div></div>
+              <div>
+                <div class="feature-name">Gana Recompensas</div>
+                <div class="feature-desc">Obtén puntos y sube en el ranking por ayudar.</div>
+              </div>
             </li>
             <li class="feature-item">
-              <div class="feature-icon">👥</div>
-              <div><div class="feature-name">Community Support</div><div class="feature-desc">Leave helpful comments and tips to aid in the search for missing pets.</div></div>
+              <div class="feature-icon">💬</div>
+              <div>
+                <div class="feature-name">Soporte Comunitario</div>
+                <div class="feature-desc">Comentarios y consejos de otros usuarios.</div>
+              </div>
             </li>
           </ul>
         </div>
         <div class="mini-leaderboard">
-          <div style="font-weight:700;margin-bottom:14px">🏆 Top Rescuers</div>
-          <div class="mini-lb-row">
-            <div class="mini-rank lb-rank r1">1</div>
-            <div style="flex:1"><div style="font-weight:700">Sarah M.</div><div style="font-size:.78rem;color:var(--gray-600)">Top Rescuer</div></div>
-            <div style="font-weight:700;color:var(--red)">1,250 pts</div>
-          </div>
-          <div class="mini-lb-row">
-            <div class="mini-rank lb-rank r2">2</div>
-            <div style="flex:1"><div style="font-weight:700">Mike R.</div><div style="font-size:.78rem;color:var(--gray-600)">Expert Helper</div></div>
-            <div style="font-weight:700;color:var(--gold)">980 pts</div>
-          </div>
-          <div class="mini-lb-row">
-            <div class="mini-rank lb-rank r3">3</div>
-            <div style="flex:1"><div style="font-weight:700">Lisa K.</div><div style="font-size:.78rem;color:var(--gray-600)">Dedicated Finder</div></div>
-            <div style="font-weight:700;color:var(--gray-600)">850 pts</div>
-          </div>
-          <button class="btn btn-outline" style="width:100%;margin-top:14px" onclick="showPage('ranking')">View Leaderboard →</button>
+          <div class="leaderboard-header">🏆 Top Rescatadores</div>
+          ${top3.map((user, index) => {
+            const rankClass = index === 0 ? 'r1' : index === 1 ? 'r2' : 'r3';
+            const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+            return `
+              <div class="mini-lb-row">
+                <div class="mini-rank lb-rank ${rankClass}">${rankIcon}</div>
+                <div style="flex:1">
+                  <div style="font-weight:700">${user.name}</div>
+                  <div style="font-size:.78rem;color:var(--gray-600)">${user.level || 'Rescatador'}</div>
+                </div>
+                <div style="font-weight:700;color:var(--primary)">${user.points} pts</div>
+              </div>
+            `;
+          }).join('')}
+          <button class="btn btn-outline" style="width:100%;margin-top:14px" onclick="showPage('ranking')">Ver Ranking →</button>
         </div>
       </div>
     </div>
 
-    <!-- CTA -->
+    <!-- CTA Section -->
     <div class="cta-section">
-      <h2>Ready to Make a Difference?</h2>
-      <p>Join our community and help reunite lost dogs with their loving families. Every report and comment counts.</p>
+      <h2>¿Listo para Hacer la Diferencia?</h2>
+      <p>Tu ayuda puede reunir a una familia con su mejor amigo.</p>
       <div class="cta-btns">
-        <button class="btn btn-primary" onclick="showPage('report')">Report a Dog →</button>
-        <button class="btn btn-outline" onclick="showPage('map')">📍 Explore Map</button>
+        <button class="btn btn-primary" onclick="showPage('report')">Reportar un Perro →</button>
+        <button class="btn btn-outline" onclick="showPage('map')">📍 Explorar Mapa</button>
       </div>
     </div>
 
     <!-- Footer -->
     <footer>
       <div class="footer-inner">
-        <div class="footer-logo"><div class="logo-icon" style="width:28px;height:28px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem">🐾</div>PawFinder</div>
-        <div class="footer-links">
-          <a href="#" onclick="showPage('lost')">Lost Dogs</a>
-          <a href="#" onclick="showPage('found')">Found Dogs</a>
-          <a href="#" onclick="showPage('map')">Map</a>
-          <a href="#" onclick="showPage('ranking')">Leaderboard</a>
+        <div class="footer-logo">
+          <div class="logo-icon">🐾</div>
+          PawFinder
         </div>
-        <div class="footer-copy">Built with love for our furry friends 🐾</div>
+        <div class="footer-links">
+          <a href="#" onclick="showPage('lost')">Perros Perdidos</a>
+          <a href="#" onclick="showPage('found')">Perros Encontrados</a>
+          <a href="#" onclick="showPage('map')">Mapa</a>
+          <a href="#" onclick="showPage('ranking')">Ranking</a>
+        </div>
+        <div class="footer-copy">Hecho con amor para nuestros amigos peludos 🐾</div>
       </div>
     </footer>
   `;
   
   document.getElementById('page-home').innerHTML = homeHTML;
   
-  // Renderizar las tarjetas con los últimos 5 perros
+  // Renderizar tarjetas
   const lostContainer = document.getElementById('home-lost-grid');
   const foundContainer = document.getElementById('home-found-grid');
   
@@ -209,51 +271,5 @@ async function renderHomeGrids() {
   }
 }
 
-// Función para buscar en home
-function searchHomeDogs() {
-  const location = document.getElementById('home-location')?.value.toLowerCase() || '';
-  const breed = document.getElementById('home-breed')?.value.toLowerCase() || '';
-  const color = document.getElementById('home-color')?.value.toLowerCase() || '';
-  const size = document.getElementById('home-size')?.value.toLowerCase() || '';
-  const reward = document.getElementById('home-reward')?.value.toLowerCase() || '';
-  
-  const allDogs = window.ALL_DOGS || [];
-  
-  const filtered = allDogs.filter(dog => {
-    let match = true;
-    if (location && !(dog.location || '').toLowerCase().includes(location)) match = false;
-    if (breed !== 'any breed' && !(dog.breed || '').toLowerCase().includes(breed)) match = false;
-    if (color !== 'any color' && !(dog.color || '').toLowerCase().includes(color)) match = false;
-    if (size !== 'any size' && !(dog.size || '').toLowerCase().includes(size)) match = false;
-    if (reward === 'with reward' && !dog.reward) match = false;
-    if (reward === 'no reward' && dog.reward) match = false;
-    return match;
-  });
-  
-  // Mostrar resultados en la página de lost/found según el tipo
-  if (filtered.length > 0) {
-    const lostFiltered = filtered.filter(d => d.type === 'lost');
-    const foundFiltered = filtered.filter(d => d.type === 'found');
-    
-    if (lostFiltered.length > 0) {
-      window.tempFilteredLost = lostFiltered;
-      showPage('lost');
-      setTimeout(() => {
-        renderLostCards(lostFiltered);
-      }, 100);
-    } else if (foundFiltered.length > 0) {
-      window.tempFilteredFound = foundFiltered;
-      showPage('found');
-      setTimeout(() => {
-        renderFoundCards(foundFiltered);
-      }, 100);
-    } else {
-      showToast('No dogs found matching your search', '');
-    }
-  } else {
-    showToast('No dogs found matching your search', '');
-  }
-}
-
 // Exportar funciones
-window.searchHomeDogs = searchHomeDogs;
+window.renderHomeGrids = renderHomeGrids;

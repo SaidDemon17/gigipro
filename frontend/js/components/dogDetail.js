@@ -1,12 +1,37 @@
 // ============================================
+// FUNCIONES AUXILIARES
+// ============================================
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'hace un momento';
+  if (diffMins < 60) return `hace ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`;
+  if (diffHours < 24) return `hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+  return `hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Variable para almacenar el dogId actual (para los comentarios)
+let currentDogId = null;
+
+// ============================================
 // FUNCIONES DE DISTANCIA Y SIMILITUD
 // ============================================
 
-// Calcular distancia entre dos coordenadas (fórmula de Haversine)
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return 1000000; // Distancia grande si no hay coordenadas
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 1000000;
   
-  const R = 6371e3; // Radio de la Tierra en metros
+  const R = 6371e3;
   const φ1 = lat1 * Math.PI / 180;
   const φ2 = lat2 * Math.PI / 180;
   const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -17,15 +42,13 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
             Math.sin(Δλ/2) * Math.sin(Δλ/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-  return R * c; // Distancia en metros
+  return R * c;
 }
 
-// Calcular similitud entre dos perros (sin IA para evitar errores)
 function calculateSimilarity(dog1, dog2) {
   let score = 0;
   let total = 0;
   
-  // 1. Raza (30%)
   if (dog1.breed && dog2.breed) {
     total += 30;
     if (dog1.breed.toLowerCase() === dog2.breed.toLowerCase()) {
@@ -36,7 +59,6 @@ function calculateSimilarity(dog1, dog2) {
     }
   }
   
-  // 2. Color (25%)
   if (dog1.color && dog2.color) {
     total += 25;
     if (dog1.color.toLowerCase() === dog2.color.toLowerCase()) {
@@ -47,7 +69,6 @@ function calculateSimilarity(dog1, dog2) {
     }
   }
   
-  // 3. Tamaño (20%)
   if (dog1.size && dog2.size) {
     total += 20;
     if (dog1.size === dog2.size) {
@@ -55,7 +76,6 @@ function calculateSimilarity(dog1, dog2) {
     }
   }
   
-  // 4. Ubicación (25%)
   if (dog1.location_lat && dog2.location_lat) {
     total += 25;
     const distance = calculateDistance(
@@ -70,7 +90,6 @@ function calculateSimilarity(dog1, dog2) {
   return total > 0 ? Math.round((score / total) * 100) : 0;
 }
 
-// Obtener matches inteligentes
 function getSmartMatches(dog, allDogs) {
   const oppositeType = dog.type === 'lost' ? 'found' : 'lost';
   const candidates = allDogs.filter(d => d.type === oppositeType && d.id !== dog.id);
@@ -83,18 +102,32 @@ function getSmartMatches(dog, allDogs) {
   return withScores.sort((a, b) => b.similarity - a.similarity).slice(0, 3);
 }
 
-// Colores según porcentaje
 function getMatchColor(percentage) {
   if (percentage >= 70) return 'high';
   if (percentage >= 40) return 'med';
   return 'low';
 }
 
-// Texto de confianza
 function getConfidenceText(percentage) {
-  if (percentage >= 70) return 'High';
-  if (percentage >= 40) return 'Medium';
-  return 'Low';
+  if (percentage >= 70) return 'Alta';
+  if (percentage >= 40) return 'Media';
+  return 'Baja';
+}
+
+// ============================================
+// FUNCIÓN PARA CARGAR COMENTARIOS
+// ============================================
+
+async function loadComments(dogId) {
+  try {
+    const response = await fetch(`${API_URL}/api/dogs/${dogId}/comments`);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.error('Error cargando comentarios:', error);
+  }
+  return [];
 }
 
 // ============================================
@@ -104,7 +137,9 @@ function getConfidenceText(percentage) {
 async function showDetail(id) {
   console.log('🔍 showDetail llamada con id:', id);
   
-  // Asegurar que los datos están cargados
+  // Guardar el dogId actual para los comentarios
+  currentDogId = id;
+  
   if (!window.ALL_DOGS || window.ALL_DOGS.length === 0) {
     console.log('⏳ Esperando datos...');
     if (typeof window.loadReportsFromBackend === 'function') {
@@ -116,11 +151,11 @@ async function showDetail(id) {
   
   if (!dog) {
     console.error('❌ Perro no encontrado con id:', id);
-    showToast('Dog not found', '');
+    showToast('Perro no encontrado', '');
     return;
   }
   
-  console.log('✅ Mostrando detalle de:', dog.name || 'Unknown');
+  console.log('✅ Mostrando detalle de:', dog.name || 'Desconocido');
   
   const detailContainer = document.getElementById('detail-content');
   if (!detailContainer) {
@@ -128,10 +163,42 @@ async function showDetail(id) {
     return;
   }
   
+  // Cargar comentarios
+  const comments = await loadComments(id);
+  
+  // Generar HTML de comentarios dinámicos
+  const commentsHtml = comments.map(comment => {
+    const userInitial = comment.user_name ? comment.user_name.charAt(0).toUpperCase() : '?';
+    const timeAgo = getTimeAgo(new Date(comment.created_at));
+    return `
+      <div class="comment">
+        <div class="comment-avatar">${userInitial}</div>
+        <div class="comment-body">
+          <span class="comment-user">${escapeHtml(comment.user_name || 'Anónimo')}</span>
+          <span class="comment-time">${timeAgo}</span>
+          <div class="comment-text">${escapeHtml(comment.comment)}</div>
+          ${comment.ai_match_similarity ? `<span class="comment-sim">🤖 IA: ${comment.ai_match_similarity}% similitud</span>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  const commentsSectionHtml = comments.length > 0 
+    ? commentsHtml 
+    : '<div class="empty-state"><p>No hay comentarios aún. ¡Sé el primero en comentar!</p></div>';
+  
+  // Verificar si el usuario actual es el dueño del reporte
+  const currentUser = getCurrentUser();
+  console.log('Usuario actual:', currentUser);
+  console.log('user_id del perro:', dog.user_id);
+  console.log('¿Es dueño?', currentUser && currentUser.id === dog.user_id);
+  
+  const isOwner = currentUser && currentUser.id === dog.user_id;
+  
   // Obtener matches inteligentes
   let matchesHtml = '';
   let confidenceClass = 'high';
-  let confidenceText = 'High';
+  let confidenceText = 'Alta';
   
   if (window.ALL_DOGS && window.ALL_DOGS.length > 0) {
     const smartMatches = getSmartMatches(dog, window.ALL_DOGS);
@@ -144,7 +211,7 @@ async function showDetail(id) {
       return `<div class="match-item" onclick="showDetail(${match.id})" style="cursor:pointer">
         <div class="match-thumb">${match.emoji || '🐕'}</div>
         <div style="flex:1">
-          <div class="match-name">${match.name || 'Unknown'} · ${match.breed || 'Unknown'}</div>
+          <div class="match-name">${match.name || 'Desconocido'} · ${match.breed || 'Desconocida'}</div>
           <div class="match-loc">📍 ${(match.location || match.location_address || '').split(',')[0]}</div>
           <div class="match-bar"><div class="match-fill ${cls}" style="width:${match.similarity}%"></div></div>
         </div>
@@ -157,55 +224,72 @@ async function showDetail(id) {
   }
   
   if (!matchesHtml) {
-    matchesHtml = '<div class="empty-state" style="padding:20px"><p>No similar dogs found at the moment.</p></div>';
+    matchesHtml = '<div class="empty-state" style="padding:20px"><p>No se encontraron perros similares en este momento.</p></div>';
   }
   
   const html = `
     <div class="detail-page">
-      <button class="btn btn-outline btn-sm" onclick="history.back(); showPage('${dog.type === 'lost' ? 'lost' : 'found'}')" style="margin-bottom:20px">← Back</button>
+      <button class="btn btn-outline btn-sm" onclick="showPage('${dog.type === 'lost' ? 'lost' : 'found'}')" style="margin-bottom:20px">
+        ← Volver a ${dog.type === 'lost' ? 'Perros Perdidos' : 'Perros Encontrados'}
+      </button>
       <div class="detail-header">
-        <div class="detail-badge ${dog.type}">${dog.type === 'lost' ? 'LOST DOG' : 'FOUND DOG'}</div>
-        <div class="detail-title">${dog.type === 'lost' ? `Have You Seen ${dog.name || 'this dog'}?` : `Found Dog in ${(dog.location || dog.location_address || '').split(',')[0]}`}</div>
-        <div class="detail-sub">${dog.breed || 'Unknown'} · ${dog.color || 'Unknown'} · ${dog.size || 'Unknown'}</div>
+        <div class="detail-badge ${dog.status === 'reunited' ? 'reunited' : dog.type}">
+          ${dog.status === 'reunited' ? '✅ REUNIDO' : (dog.type === 'lost' ? 'PERRO PERDIDO' : 'PERRO ENCONTRADO')}
+        </div>
+        <div class="detail-title">${dog.type === 'lost' ? `¿Has Visto a ${dog.name || 'este perro'}?` : `Perro Encontrado en ${(dog.location || dog.location_address || '').split(',')[0]}`}</div>
+        <div class="detail-sub">${dog.breed || 'Desconocida'} · ${dog.color || 'Desconocido'} · ${dog.size || 'Desconocido'}</div>
       </div>
       <div class="detail-grid">
         <div class="detail-img-col">
           <div class="detail-img" style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; background:#f0f0f0">
             ${dog.photos && dog.photos.length > 0 && dog.photos[0] ? 
-            `<img src="${dog.photos[0]}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\'display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem\'>🐕</div>'" />` :
+            `<img src="${dog.photos[0]}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem\">🐕</div>'" />` :
             `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">${dog.emoji || '🐕'}</div>`
-          }
-        </div>
-          ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} REWARD</div>` : ''}
+            }
+          </div>
+          ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} RECOMPENSA</div>` : ''}
         </div>
         <div class="detail-info-col">
           <div class="info-card">
-            <h3>Last Seen / Found</h3>
+            <h3>Última Vez Visto / Encontrado</h3>
             <div class="info-row">📅 <strong>${formatDate(dog.date || new Date().toISOString())}</strong></div>
-            <div class="info-row">📍 ${dog.location || dog.location_address || 'Unknown location'}</div>
+            <div class="info-row">📍 ${dog.location || dog.location_address || 'Ubicación desconocida'}</div>
           </div>
           <div class="contact-card">
-            <h3>Contact ${dog.type === 'lost' ? 'Owner' : 'Finder'} Immediately</h3>
+            <h3>Contacta al ${dog.type === 'lost' ? 'Dueño' : 'Quien lo Encontró'} Inmediatamente</h3>
             <button class="contact-btn" onclick="window.location.href='tel:${dog.contact || dog.contact_phone || ''}'">📞 ${dog.contact || dog.contact_phone || 'N/A'}</button>
             <button class="contact-btn" onclick="window.location.href='mailto:${dog.email || dog.contact_email || ''}'">✉️ ${dog.email || dog.contact_email || 'N/A'}</button>
+            
+            ${isOwner && dog.status !== 'reunited' ? `
+              <button class="contact-btn" style="background: #2E7D32; margin-top:8px" onclick="markAsReunited(${dog.id})">
+                🎉 Marcar como Reunido (Solo Dueño)
+              </button>
+            ` : ''}
+            
+            ${dog.status === 'reunited' ? `
+              <div style="background: #2E7D32; padding:10px; border-radius:8px; text-align:center; margin-top:8px">
+                ✅ Este perro ya fue reunido con su familia
+              </div>
+            ` : ''}
+            
             <div style="display:flex;gap:8px;margin-top:8px">
-              <button class="btn btn-outline btn-sm" style="flex:1;color:#fff;border-color:rgba(255,255,255,.4)" onclick="shareDog(${dog.id})">Share</button>
-              <button class="btn btn-outline btn-sm" style="flex:1;color:#fff;border-color:rgba(255,255,255,.4)" onclick="printPoster(${dog.id})">Print Poster</button>
+              <button class="btn btn-outline btn-sm" style="flex:1;color:#fff;border-color:rgba(255,255,255,.4)" onclick="shareDog(${dog.id})">Compartir</button>
+              <button class="btn btn-outline btn-sm" style="flex:1;color:#fff;border-color:rgba(255,255,255,.4)" onclick="printPoster(${dog.id})">Imprimir Cartel</button>
             </div>
           </div>
         </div>
       </div>
       <div class="detail-desc">
-        <h3>About ${dog.name || 'this dog'}</h3>
-        <p style="margin-bottom:16px">${dog.desc || dog.description || 'No description available.'}</p>
+        <h3>Sobre ${dog.name || 'este perro'}</h3>
+        <p style="margin-bottom:16px">${dog.desc || dog.description || 'No hay descripción disponible.'}</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
           <div>
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:10px">Physical Description</div>
-            ${(dog.physical || ['No details available']).map(p => `<div class="desc-item">${p}</div>`).join('')}
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:10px">Descripción Física</div>
+            ${(dog.physical ? dog.physical.split('\n') : ['No hay detalles disponibles']).map(p => `<div class="desc-item">${escapeHtml(p)}</div>`).join('')}
           </div>
           <div>
-            <div style="font-weight:700;font-size:.85rem;margin-bottom:10px">Personality</div>
-            ${(dog.personality || ['Unknown personality']).map(p => `<div class="desc-item">${p}</div>`).join('')}
+            <div style="font-weight:700;font-size:.85rem;margin-bottom:10px">Personalidad</div>
+            ${(dog.personality ? dog.personality.split('\n') : ['Personalidad desconocida']).map(p => `<div class="desc-item">${escapeHtml(p)}</div>`).join('')}
           </div>
         </div>
       </div>
@@ -213,34 +297,20 @@ async function showDetail(id) {
         <div class="ai-header">
           <div class="ai-icon">🤖</div>
           <div>
-            <div style="font-weight:700">AI Similarity Matches</div>
-            <div style="font-size:.82rem;color:var(--gray-600)">Potential matches found based on appearance and location</div>
+            <div style="font-weight:700">Coincidencias con IA</div>
+            <div style="font-size:.82rem;color:var(--gray-600)">Posibles coincidencias encontradas basadas en apariencia y ubicación</div>
           </div>
         </div>
-        <div class="confidence-badge ${confidenceClass}">🎯 Overall Match Confidence: ${confidenceText}</div>
+        <div class="confidence-badge ${confidenceClass}">🎯 Confianza General: ${confidenceText}</div>
         ${matchesHtml}
-        <div class="ai-disclaimer">⚠️ This is an AI-based suggestion and not a confirmation. Always verify in person.</div>
+        <div class="ai-disclaimer">⚠️ Esto es una sugerencia basada en IA, no una confirmación. Siempre verifica en persona.</div>
       </div>
       <div class="comments-section">
-        <h3>💬 Community Comments</h3>
-        <div class="comment">
-          <div class="comment-avatar">JD</div>
-          <div class="comment-body">
-            <span class="comment-user">John D.</span><span class="comment-time">2 hours ago</span>
-            <div class="comment-text">I saw a dog matching this description near the park this morning!</div>
-            <span class="comment-sim">AI Match: 78% similarity</span>
-          </div>
-        </div>
-        <div class="comment">
-          <div class="comment-avatar">ML</div>
-          <div class="comment-body">
-            <span class="comment-user">Maria L.</span><span class="comment-time">5 hours ago</span>
-            <div class="comment-text">Sharing on my neighborhood Facebook group! Hope you find them soon 🙏</div>
-          </div>
-        </div>
+        <h3>💬 Comentarios de la Comunidad</h3>
+        ${commentsSectionHtml}
         <div class="comment-input">
-          <input type="text" placeholder="Leave a comment or upload a photo…" id="comment-txt"/>
-          <button class="btn btn-primary btn-sm" onclick="addComment()">Post</button>
+          <input type="text" placeholder="Deja un comentario o sube una foto…" id="comment-txt"/>
+          <button class="btn btn-primary btn-sm" onclick="addComment()">Publicar</button>
         </div>
       </div>
     </div>
@@ -258,8 +328,8 @@ function shareDog(dogId) {
   const dog = window.ALL_DOGS?.find(d => d.id == dogId);
   if (dog) {
     const url = window.location.href;
-    navigator.clipboard.writeText(`Check out this ${dog.type} dog: ${dog.name || 'Unknown'} - ${url}`);
-    showToast('Link copied to clipboard!', 'success');
+    navigator.clipboard.writeText(`Mira este ${dog.type === 'lost' ? 'perro perdido' : 'perro encontrado'}: ${dog.name || 'Desconocido'} - ${url}`);
+    showToast('¡Enlace copiado al portapapeles!', 'success');
   }
 }
 
@@ -269,17 +339,17 @@ function printPoster(dogId) {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
-        <head><title>Missing Dog Poster - ${dog.name || 'Dog'}</title></head>
+        <head><title>Cartel - ${dog.name || 'Perro'}</title></head>
         <body style="font-family:Arial; text-align:center; padding:20px">
-          <h1>${dog.type === 'lost' ? 'LOST DOG' : 'FOUND DOG'}</h1>
+          <h1>${dog.type === 'lost' ? 'PERRO PERDIDO' : 'PERRO ENCONTRADO'}</h1>
           <div style="font-size:60px">🐕</div>
-          <h2>${dog.name || 'Unknown'}</h2>
-          <p>${dog.breed || 'Unknown'} · ${dog.color || 'Unknown'} · ${dog.size || 'Unknown'}</p>
-          <p>Location: ${dog.location || dog.location_address || 'Unknown'}</p>
-          <p>Date: ${formatDate(dog.date)}</p>
-          <p>Contact: ${dog.contact || dog.contact_phone || 'N/A'}</p>
+          <h2>${dog.name || 'Desconocido'}</h2>
+          <p>${dog.breed || 'Desconocida'} · ${dog.color || 'Desconocido'} · ${dog.size || 'Desconocido'}</p>
+          <p>Ubicación: ${dog.location || dog.location_address || 'Desconocida'}</p>
+          <p>Fecha: ${formatDate(dog.date)}</p>
+          <p>Contacto: ${dog.contact || dog.contact_phone || 'N/A'}</p>
           <hr>
-          <p>Please help! Call if you have any information.</p>
+          <p>¡Por favor ayuda! Llama si tienes información.</p>
         </body>
       </html>
     `);
@@ -288,12 +358,76 @@ function printPoster(dogId) {
   }
 }
 
-function addComment() {
+async function markAsReunited(dogId) {
+  if (!confirm('¿Confirmas que este perro ha sido reunido con su familia? Esta acción no se puede deshacer.')) {
+    return;
+  }
+  
+  showToast('Procesando...', '');
+  
+  try {
+    const currentUser = getCurrentUser();
+    const response = await fetch(`${API_URL}/api/reports/${dogId}/reunite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser?.id })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showToast('🎉 ¡Perro marcado como reunido! +100 puntos', 'success');
+      await window.loadReportsFromBackend();
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    } else {
+      showToast('Error: ' + data.error, '');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('Error al marcar como reunido', '');
+  }
+}
+
+async function addComment() {
   const txt = document.getElementById('comment-txt')?.value.trim();
   if (!txt) return;
-  showToast('Comment posted! +5 pts earned 🎉', 'success');
-  const commentInput = document.getElementById('comment-txt');
-  if (commentInput) commentInput.value = '';
+  
+  const currentUser = getCurrentUser();
+  const dogId = currentDogId;
+  
+  if (!dogId) {
+    showToast('Error: No se pudo identificar el perro', '');
+    return;
+  }
+  
+  showToast('Publicando comentario...', '');
+  
+  try {
+    const response = await fetch(`${API_URL}/api/dogs/${dogId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser?.id || null,
+        userName: currentUser?.name || 'Anónimo',
+        comment: txt,
+        aiMatchSimilarity: null
+      })
+    });
+    
+    if (response.ok) {
+      showToast('¡Comentario publicado! +5 pts 🎉', 'success');
+      document.getElementById('comment-txt').value = '';
+      // Recargar la página para mostrar el nuevo comentario
+      location.reload();
+    } else {
+      throw new Error('Error al publicar');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    showToast('Error al publicar comentario', '');
+  }
 }
 
 // Exportar funciones
@@ -301,6 +435,7 @@ window.showDetail = showDetail;
 window.shareDog = shareDog;
 window.printPoster = printPoster;
 window.addComment = addComment;
+window.markAsReunited = markAsReunited;
 window.calculateDistance = calculateDistance;
 window.calculateSimilarity = calculateSimilarity;
 window.getSmartMatches = getSmartMatches;
