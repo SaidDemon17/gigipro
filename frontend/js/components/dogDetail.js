@@ -241,14 +241,20 @@ async function showDetail(id) {
       </div>
       <div class="detail-grid">
         <div class="detail-img-col">
-          <div class="detail-img" style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; background:#f0f0f0">
-            ${dog.photos && dog.photos.length > 0 && dog.photos[0] ? 
-            `<img src="${dog.photos[0]}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem\">🐕</div>'" />` :
-            `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">${dog.emoji || '🐕'}</div>`
-            }
+            <div class="detail-img" style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; background:#f0f0f0">
+              ${(() => {
+                const photoUrl = dog.photos && dog.photos[0];
+                if (photoUrl && photoUrl.includes('cloudinary')) {
+                  return `<img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover" alt="Foto de ${dog.name}" onerror="this.parentElement.innerHTML='<div style=\'font-size:6rem\'>🐕</div>'" />`;
+                } else if (photoUrl && photoUrl.startsWith('/uploads/')) {
+                  return `<img src="${API_URL}${photoUrl}" style="width:100%; height:100%; object-fit:cover" alt="Foto de ${dog.name}" onerror="this.parentElement.innerHTML='<div style=\'font-size:6rem\'>🐕</div>'" />`;
+                } else {
+                  return `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">🐕</div>`;
+                }
+              })()}
+            </div>
+            ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} RECOMPENSA</div>` : ''}
           </div>
-          ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} RECOMPENSA</div>` : ''}
-        </div>
         <div class="detail-info-col">
           <div class="info-card">
             <h3>Última Vez Visto / Encontrado</h3>
