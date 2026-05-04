@@ -148,9 +148,14 @@ async function getSmartMatches(dog, allDogs) {
   const topCandidates = filteredCandidates
     .sort((a, b) => b.filterScore - a.filterScore)
     .slice(0, 3);
-  
+    
+    // Dentro de getSmartMatches, antes de enviar a Gemini
   const withFinalScores = await Promise.all(
-    topCandidates.map(async candidate => {
+    topCandidates.map(async (candidate, index) => {
+      // Esperar 1 segundo entre cada solicitud
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
       const result = await calculateSimilarityWithGemini(dog, candidate, candidate.filterScore);
       return {
         ...candidate,
