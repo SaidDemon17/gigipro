@@ -15,6 +15,10 @@
 <!-- Cropper.js para recortar imágenes -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+<!-- Configuración de API -->
+<script>
+  const API_URL = 'https://gigipro.onrender.com';
+</script>
 </head>
 <body>
 
@@ -31,7 +35,6 @@
       <a href="#" onclick="showPage('found');setActive(this)">Perros Encontrados</a>
       <a href="#" onclick="showPage('map');setActive(this)">Mapa</a>
       <a href="#" onclick="showPage('ranking');setActive(this)">Ranking</a>
-      
     </div>
     <div class="nav-actions">
       <button class="btn btn-primary" onclick="showPage('report')">+ Reportar Perro</button>
@@ -70,16 +73,7 @@
     <div class="modal-footer">¿No tienes cuenta? <a href="#" onclick="openAuthModal()">Crea una gratis →</a></div>
   </div>
 </div>
-<!-- Recently Reunited -->
-<div class="section">
-  <div class="section-header">
-    <div>
-      <div class="section-title">🐾 Reunidos Recientemente</div>
-      <div class="section-sub">¡Estos perros ya están en casa! Gracias por ayudar.</div>
-    </div>
-  </div>
-  <div class="dogs-grid" id="home-reunited-grid"></div>
-</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
