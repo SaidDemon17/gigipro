@@ -16,6 +16,7 @@ async function loadReportsFromBackend() {
       // Convertir reportes al formato de DOGS
       const newReports = reports.map(report => ({
         id: report.id || nextId++,
+        user_id: report.user_id, 
         type: report.type,
         name: report.name || 'Unknown',
         breed: report.breed || 'Unknown',
