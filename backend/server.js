@@ -501,8 +501,7 @@ app.post('/api/compare-images', async (req, res) => {
     
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
-    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y responde SOLO con un número del 0 al 100 que represente el porcentaje de probabilidad de que sea el MISMO perro. Considera: forma de orejas, patrón de manchas, color de pelaje, tamaño relativo, y cualquier característica única. Responde ÚNICAMENTE con el número, sin texto adicional.`;
-    
+    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros. Analiza: forma de orejas, patrón de manchas, color de pelaje, tamaño relativo, y cualquier característica única. Responde ÚNICAMENTE con un número del 0 al 100 que represente el porcentaje de probabilidad de que sea el MISMO perro. Ejemplo de respuesta: "85"`;    
     const result = await model.generateContent([
       { text: prompt },
       { inlineData: { mimeType: 'image/jpeg', data: base64Image1 } },
