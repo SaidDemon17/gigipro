@@ -480,7 +480,6 @@ app.post('/api/dogs/:dogId/comments', async (req, res) => {
 console.log('✅ Registrando endpoint /api/compare-images');
 
 app.post('/api/compare-images', async (req, res) => {
-  console.log('🔍 Endpoint /api/compare-images fue llamado');
   try {
     const { imageUrl1, imageUrl2 } = req.body;
     
@@ -490,6 +489,7 @@ app.post('/api/compare-images', async (req, res) => {
     
     console.log('🔍 Comparando imágenes con Gemini...');
     
+    // Obtener las imágenes
     const response1 = await fetch(imageUrl1);
     const response2 = await fetch(imageUrl2);
     
@@ -499,9 +499,31 @@ app.post('/api/compare-images', async (req, res) => {
     const base64Image1 = Buffer.from(buffer1).toString('base64');
     const base64Image2 = Buffer.from(buffer2).toString('base64');
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Configurar Gemini
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     
-    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros. Analiza: forma de orejas, patrón de manchas, color de pelaje, tamaño relativo, y cualquier característica única. Responde ÚNICAMENTE con un número del 0 al 100 que represente el porcentaje de probabilidad de que sea el MISMO perro. Ejemplo de respuesta: "85"`;    
+    // Nuevo prompt que pide porcentaje Y explicación
+    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
+
+Analiza cuidadosamente:
+- Forma y posición de las orejas
+- Patrón de manchas en el pelaje
+- Color y textura del pelaje
+- Tamaño y proporciones corporales
+- Forma del hocico y la cabeza
+- Ojos, nariz y otras características faciales
+
+Responde en el siguiente formato EXACTO:
+
+Porcentaje: [número del 0 al 100]
+Explicación: [tu análisis detallado de por qué llegaste a este porcentaje]
+
+Ejemplo de respuesta:
+Porcentaje: 85
+Explicación: Ambos perros tienen orejas puntiagudas, pelaje marrón con mancha blanca en el pecho, y tamaño similar. La única diferencia es que uno parece tener una cicatriz en la oreja izquierda.
+
+No agregues texto adicional fuera de este formato.`;
+
     const result = await model.generateContent([
       { text: prompt },
       { inlineData: { mimeType: 'image/jpeg', data: base64Image1 } },
@@ -509,14 +531,40 @@ app.post('/api/compare-images', async (req, res) => {
     ]);
     
     const response = await result.response;
-    const similarityText = response.text();
-    const similarityPercentage = parseInt(similarityText) || 0;
+    const fullResponse = response.text();
+    
+    // Extraer porcentaje y explicación del texto
+    let similarityPercentage = 0;
+    let explanation = '';
+    
+    const percentageMatch = fullResponse.match(/Porcentaje:\s*(\d+)/i);
+    const explanationMatch = fullResponse.match(/Explicación:\s*([\s\S]+?)(?=$|Porcentaje)/i);
+    
+    if (percentageMatch) {
+      similarityPercentage = parseInt(percentageMatch[1]);
+    }
+    
+    if (explanationMatch) {
+      explanation = explanationMatch[1].trim();
+    }
+    
+    // Si no pudo extraer el formato, intenta con búsqueda más flexible
+    if (!percentageMatch) {
+      const anyNumber = fullResponse.match(/\b(\d{1,3})\b/);
+      if (anyNumber) {
+        similarityPercentage = parseInt(anyNumber[1]);
+      }
+      explanation = fullResponse.substring(0, 300);
+    }
     
     console.log(`📊 Similitud Gemini: ${similarityPercentage}%`);
+    console.log(`📝 Explicación: ${explanation}`);
     
     res.json({ 
       success: true, 
-      similarityPercentage: Math.min(100, Math.max(0, similarityPercentage))
+      similarityPercentage: Math.min(100, Math.max(0, similarityPercentage)),
+      explanation: explanation,
+      rawResponse: fullResponse
     });
     
   } catch (error) {
