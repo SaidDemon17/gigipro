@@ -106,10 +106,9 @@ function calculateSimilarity(dog1, dog2) {
   return calculateFilterScore(dog1, dog2);
 }
 
-// Calcular similitud final combinando filtro + Gemini
 async function calculateSimilarityWithGemini(dog1, dog2, filterScore) {
   if (!dog1.photos?.length || !dog2.photos?.length) {
-    return filterScore;
+    return { similarity: filterScore, explanation: null };
   }
   
   try {
@@ -125,15 +124,17 @@ async function calculateSimilarityWithGemini(dog1, dog2, filterScore) {
     const data = await response.json();
     
     if (data.success) {
-      // 60% filtro local + 40% Gemini
       const finalScore = (filterScore * 0.6) + (data.similarityPercentage * 0.4);
-      return Math.round(finalScore);
+      return { 
+        similarity: Math.round(finalScore), 
+        explanation: data.explanation 
+      };
     }
   } catch (error) {
     console.error('Error llamando a Gemini:', error);
   }
   
-  return filterScore;
+  return { similarity: filterScore, explanation: null };
 }
 
 // Obtener matches inteligentes con filtro previo
@@ -161,11 +162,15 @@ async function getSmartMatches(dog, allDogs) {
   
   // Paso 4: Enviar SOLO esos 3 a Gemini
   const withFinalScores = await Promise.all(
-    topCandidates.map(async candidate => ({
+  topCandidates.map(async candidate => {
+    const result = await calculateSimilarityWithGemini(dog, candidate, candidate.filterScore);
+    return {
       ...candidate,
-      similarity: await calculateSimilarityWithGemini(dog, candidate, candidate.filterScore)
-    }))
-  );
+      similarity: result.similarity,
+      explanation: result.explanation
+    };
+  })
+);
   
   // Paso 5: Ordenar por similitud final
   return withFinalScores.sort((a, b) => b.similarity - a.similarity);
@@ -275,14 +280,18 @@ async function showDetail(id) {
     confidenceClass = getMatchColor(bestMatchPercentage);
     confidenceText = getConfidenceText(bestMatchPercentage);
     
+        // Dentro de getSmartMatches o en la parte donde se muestran los matches
     matchesHtml = smartMatches.map(match => {
       const cls = getMatchColor(match.similarity);
+      const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
+      
       return `<div class="match-item" onclick="showDetail(${match.id})" style="cursor:pointer">
         <div class="match-thumb">${match.emoji || '🐕'}</div>
         <div style="flex:1">
           <div class="match-name">${match.name || 'Desconocido'} · ${match.breed || 'Desconocida'}</div>
           <div class="match-loc">📍 ${(match.location || match.location_address || '').split(',')[0]}</div>
           <div class="match-bar"><div class="match-fill ${cls}" style="width:${match.similarity}%"></div></div>
+          ${explanationHtml}
         </div>
         <div>
           <div class="match-pct ${cls}">${match.similarity}%</div>
@@ -290,7 +299,6 @@ async function showDetail(id) {
         </div>
       </div>`;
     }).join('');
-  }
   
   if (!matchesHtml) {
     matchesHtml = '<div class="empty-state" style="padding:20px"><p>No se encontraron perros similares en este momento.</p></div>';
