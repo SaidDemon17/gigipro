@@ -9,13 +9,13 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 
-
-// Configurar Cloudinary con tus datos
+// Configurar Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -44,7 +44,6 @@ const sql = neon(process.env.DATABASE_URL);
 // ============================================
 async function initDB() {
   try {
-    // Tabla de usuarios
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -62,13 +61,12 @@ async function initDB() {
     `;
     console.log('✅ Tabla users lista');
 
-    // Tabla de reportes (con user_id)
     await sql`
       CREATE TABLE IF NOT EXISTS dog_reports (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         type VARCHAR(10) NOT NULL,
-        status VARCHAR(20) DEFAULT 'active',  
+        status VARCHAR(20) DEFAULT 'active',
         name VARCHAR(100),
         breed VARCHAR(100),
         color VARCHAR(50),
@@ -76,6 +74,8 @@ async function initDB() {
         gender VARCHAR(20),
         age VARCHAR(50),
         description TEXT,
+        physical TEXT,
+        personality TEXT,
         location_address TEXT,
         location_lat DOUBLE PRECISION,
         location_lon DOUBLE PRECISION,
@@ -91,7 +91,6 @@ async function initDB() {
     `;
     console.log('✅ Tabla dog_reports lista');
 
-    // Tabla de actividades
     await sql`
       CREATE TABLE IF NOT EXISTS user_activities (
         id SERIAL PRIMARY KEY,
@@ -103,7 +102,6 @@ async function initDB() {
     `;
     console.log('✅ Tabla user_activities lista');
 
-    // Tabla de comentarios de perfil
     await sql`
       CREATE TABLE IF NOT EXISTS profile_comments (
         id SERIAL PRIMARY KEY,
@@ -116,7 +114,6 @@ async function initDB() {
     `;
     console.log('✅ Tabla profile_comments lista');
 
-    // Tabla de logros
     await sql`
       CREATE TABLE IF NOT EXISTS user_achievements (
         id SERIAL PRIMARY KEY,
@@ -126,6 +123,19 @@ async function initDB() {
       );
     `;
     console.log('✅ Tabla user_achievements lista');
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS dog_comments (
+        id SERIAL PRIMARY KEY,
+        dog_report_id INTEGER REFERENCES dog_reports(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        user_name VARCHAR(100),
+        comment TEXT NOT NULL,
+        ai_match_similarity INTEGER DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log('✅ Tabla dog_comments lista');
 
     console.log('✅ Todas las tablas inicializadas correctamente');
   } catch (error) {
@@ -137,7 +147,6 @@ async function initDB() {
 // ENDPOINTS DE USUARIOS
 // ============================================
 
-// Registrar usuario
 app.post('/api/users/register', async (req, res) => {
   console.log('📝 POST /api/users/register', req.body?.email);
   try {
@@ -169,7 +178,6 @@ app.post('/api/users/register', async (req, res) => {
   }
 });
 
-// Iniciar sesión
 app.post('/api/users/login', async (req, res) => {
   console.log('📝 POST /api/users/login', req.body?.email);
   try {
@@ -199,13 +207,12 @@ app.post('/api/users/login', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-// Marcar un perro como reunido
+
 app.put('/api/reports/:id/reunite', async (req, res) => {
   try {
     const { id } = req.params;
     const { userId } = req.body;
     
-    // Verificar que el usuario es el dueño del reporte
     const report = await sql`SELECT user_id FROM dog_reports WHERE id = ${id}`;
     
     if (report.length === 0) {
@@ -216,16 +223,9 @@ app.put('/api/reports/:id/reunite', async (req, res) => {
       return res.status(403).json({ success: false, error: 'No eres el dueño de este reporte' });
     }
     
-    // Actualizar estado
     const result = await sql`
-      UPDATE dog_reports 
-      SET status = 'reunited' 
-      WHERE id = ${id} 
-      RETURNING *
+      UPDATE dog_reports SET status = 'reunited' WHERE id = ${id} RETURNING *
     `;
-    
-    // Sumar +100 puntos al usuario que ayudó (el que encontró al perro)
-    // Aquí necesitarías saber quién ayudó, no el dueño
     
     res.json({ success: true, report: result[0] });
   } catch (error) {
@@ -234,7 +234,6 @@ app.put('/api/reports/:id/reunite', async (req, res) => {
   }
 });
 
-// Endpoint para obtener estadísticas
 app.get('/api/stats', async (req, res) => {
   try {
     const lostCount = await sql`SELECT COUNT(*) FROM dog_reports WHERE type = 'lost' AND status = 'active'`;
@@ -251,7 +250,7 @@ app.get('/api/stats', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// Obtener ranking
+
 app.get('/api/users/ranking', async (req, res) => {
   try {
     const result = await sql`
@@ -265,7 +264,6 @@ app.get('/api/users/ranking', async (req, res) => {
   }
 });
 
-// Obtener usuario por ID
 app.get('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -291,7 +289,6 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// Actualizar puntos
 app.post('/api/users/:id/points', async (req, res) => {
   try {
     const { id } = req.params;
@@ -317,7 +314,6 @@ app.post('/api/users/:id/points', async (req, res) => {
   }
 });
 
-// Actualizar perfil
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -346,7 +342,6 @@ app.put('/api/users/:id', async (req, res) => {
 // ENDPOINTS DE REPORTES
 // ============================================
 
-// Subir fotos a Cloudinary
 app.post('/api/upload', upload.array('photos', 5), async (req, res) => {
   console.log('📸 Archivos recibidos:', req.files?.length || 0);
   
@@ -358,7 +353,6 @@ app.post('/api/upload', upload.array('photos', 5), async (req, res) => {
     const uploadedFiles = [];
     
     for (const file of req.files) {
-      // Subir a Cloudinary
       const result = await cloudinary.uploader.upload(file.path, {
         folder: 'pawfinder',
         transformation: [
@@ -369,8 +363,6 @@ app.post('/api/upload', upload.array('photos', 5), async (req, res) => {
       });
       
       uploadedFiles.push(result.secure_url);
-      
-      // Eliminar archivo temporal
       fs.unlinkSync(file.path);
     }
     
@@ -383,7 +375,6 @@ app.post('/api/upload', upload.array('photos', 5), async (req, res) => {
   }
 });
 
-// Obtener todos los reportes (SIN user_id para evitar error)
 app.get('/api/reports', async (req, res) => {
   try {
     const result = await sql`
@@ -405,7 +396,6 @@ app.get('/api/reports', async (req, res) => {
   }
 });
 
-// Guardar nuevo reporte
 app.post('/api/reports', async (req, res) => {
   try {
     const data = req.body;
@@ -413,20 +403,20 @@ app.post('/api/reports', async (req, res) => {
     
     const result = await sql`
       INSERT INTO dog_reports (
-      user_id, type, status, name, breed, color, size, gender, age, description,
-      physical, personality,
-      location_address, location_lat, location_lon,
-      report_date, report_time, reward,
-      contact_name, contact_phone, contact_email, photos
-    ) VALUES (
-      ${data.user_id || null}, ${data.type}, 'active', ${data.name}, ${data.breed}, ${data.color},
-      ${data.size}, ${data.gender}, ${data.age}, ${data.description},
-      ${data.physical || ''}, ${data.personality || ''},
-      ${data.location_address}, ${data.location_lat}, ${data.location_lon},
-      ${data.date}, ${data.time}, ${data.reward},
-      ${data.contact_name}, ${data.contact_phone}, ${data.contact_email},
-      ${data.photos || []}
-    ) RETURNING *;
+        user_id, type, status, name, breed, color, size, gender, age, description,
+        physical, personality,
+        location_address, location_lat, location_lon,
+        report_date, report_time, reward,
+        contact_name, contact_phone, contact_email, photos
+      ) VALUES (
+        ${data.user_id || null}, ${data.type}, 'active', ${data.name}, ${data.breed}, ${data.color},
+        ${data.size}, ${data.gender}, ${data.age}, ${data.description},
+        ${data.physical || ''}, ${data.personality || ''},
+        ${data.location_address}, ${data.location_lat}, ${data.location_lon},
+        ${data.date}, ${data.time}, ${data.reward},
+        ${data.contact_name}, ${data.contact_phone}, ${data.contact_email},
+        ${data.photos || []}
+      ) RETURNING *;
     `;
     
     console.log('✅ Reporte guardado ID:', result[0].id);
@@ -436,7 +426,7 @@ app.post('/api/reports', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-// Obtener comentarios de un perro
+
 app.get('/api/dogs/:dogId/comments', async (req, res) => {
   try {
     const { dogId } = req.params;
@@ -456,7 +446,6 @@ app.get('/api/dogs/:dogId/comments', async (req, res) => {
   }
 });
 
-// Agregar un comentario
 app.post('/api/dogs/:dogId/comments', async (req, res) => {
   try {
     const { dogId } = req.params;
@@ -468,11 +457,9 @@ app.post('/api/dogs/:dogId/comments', async (req, res) => {
       RETURNING *
     `;
     
-    // Sumar +5 puntos al usuario por comentar
     if (userId) {
       await sql`
-        UPDATE users SET points = points + 5 
-        WHERE id = ${userId}
+        UPDATE users SET points = points + 5 WHERE id = ${userId}
       `;
       await sql`
         INSERT INTO user_activities (user_id, action, points)
@@ -486,11 +473,14 @@ app.post('/api/dogs/:dogId/comments', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 // ============================================
 // ENDPOINT DE GEMINI PARA COMPARAR IMÁGENES
 // ============================================
+console.log('✅ Registrando endpoint /api/compare-images');
 
 app.post('/api/compare-images', async (req, res) => {
+  console.log('🔍 Endpoint /api/compare-images fue llamado');
   try {
     const { imageUrl1, imageUrl2 } = req.body;
     
@@ -500,7 +490,6 @@ app.post('/api/compare-images', async (req, res) => {
     
     console.log('🔍 Comparando imágenes con Gemini...');
     
-    // Obtener las imágenes
     const response1 = await fetch(imageUrl1);
     const response2 = await fetch(imageUrl2);
     
@@ -510,26 +499,14 @@ app.post('/api/compare-images', async (req, res) => {
     const base64Image1 = Buffer.from(buffer1).toString('base64');
     const base64Image2 = Buffer.from(buffer2).toString('base64');
     
-    // Configurar Gemini
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y responde SOLO con un número del 0 al 100 que represente el porcentaje de probabilidad de que sea el MISMO perro. Considera: forma de orejas, patrón de manchas, color de pelaje, tamaño relativo, y cualquier característica única. Responde ÚNICAMENTE con el número, sin texto adicional.`;
     
-    // Crear mensaje con las dos imágenes
     const result = await model.generateContent([
       { text: prompt },
-      {
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: base64Image1
-        }
-      },
-      {
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: base64Image2
-        }
-      }
+      { inlineData: { mimeType: 'image/jpeg', data: base64Image1 } },
+      { inlineData: { mimeType: 'image/jpeg', data: base64Image2 } }
     ]);
     
     const response = await result.response;
@@ -548,8 +525,9 @@ app.post('/api/compare-images', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 // ============================================
-// INICIAR SERVIDOR
+// INICIAR SERVIDOR (AL FINAL)
 // ============================================
 app.listen(PORT, async () => {
   await initDB();
