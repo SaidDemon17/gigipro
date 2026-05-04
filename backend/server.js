@@ -532,7 +532,7 @@ No agregues texto adicional fuera de este formato.`;
     
     const response = await result.response;
     const fullResponse = response.text();
-    
+    console.log('📝 Respuesta CRUDA de Gemini:', fullResponse);
     // Extraer porcentaje y explicación del texto
     let similarityPercentage = 0;
     let explanation = '';
