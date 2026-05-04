@@ -500,7 +500,7 @@ app.post('/api/compare-images', async (req, res) => {
     const base64Image2 = Buffer.from(buffer2).toString('base64');
     
     // Configurar Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     // Nuevo prompt que pide porcentaje Y explicación
     const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
