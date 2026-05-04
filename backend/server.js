@@ -68,7 +68,7 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         user_id INTEGER,
         type VARCHAR(10) NOT NULL,
-        status VARCHAR(20) DEFAULT 'active',  // 👈 NUEVO: active, reunited
+        status VARCHAR(20) DEFAULT 'active',  
         name VARCHAR(100),
         breed VARCHAR(100),
         color VARCHAR(50),
