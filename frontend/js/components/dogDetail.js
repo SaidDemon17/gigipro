@@ -21,7 +21,6 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Variable para almacenar el dogId actual (para los comentarios)
 let currentDogId = null;
 
 // ============================================
@@ -45,12 +44,10 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-// Calcular filtro local (raza, color, tamaño, ubicación)
 function calculateFilterScore(dog1, dog2) {
   let score = 0;
   let total = 0;
   
-  // 1. RAZA (40%)
   if (dog1.breed && dog2.breed) {
     total += 40;
     if (dog1.breed.toLowerCase() === dog2.breed.toLowerCase()) {
@@ -61,7 +58,6 @@ function calculateFilterScore(dog1, dog2) {
     }
   }
   
-  // 2. COLOR (20%)
   if (dog1.color && dog2.color) {
     total += 20;
     if (dog1.color.toLowerCase() === dog2.color.toLowerCase()) {
@@ -72,7 +68,6 @@ function calculateFilterScore(dog1, dog2) {
     }
   }
   
-  // 3. TAMAÑO (20%)
   if (dog1.size && dog2.size) {
     total += 20;
     const sizeMap = { 'small': 1, 'medium': 2, 'large': 3 };
@@ -86,7 +81,6 @@ function calculateFilterScore(dog1, dog2) {
     }
   }
   
-  // 4. UBICACIÓN (20%)
   if (dog1.location_lat && dog2.location_lat) {
     total += 20;
     const distance = calculateDistance(
@@ -101,7 +95,6 @@ function calculateFilterScore(dog1, dog2) {
   return total > 0 ? Math.round((score / total) * 100) : 0;
 }
 
-// Alias para compatibilidad con código existente
 function calculateSimilarity(dog1, dog2) {
   return calculateFilterScore(dog1, dog2);
 }
@@ -137,42 +130,36 @@ async function calculateSimilarityWithGemini(dog1, dog2, filterScore) {
   return { similarity: filterScore, explanation: null };
 }
 
-// Obtener matches inteligentes con filtro previo
 async function getSmartMatches(dog, allDogs) {
   const oppositeType = dog.type === 'lost' ? 'found' : 'lost';
   const candidates = allDogs.filter(d => d.type === oppositeType && d.id !== dog.id);
   
-  // Paso 1: Calcular filtro local para todos
   const withFilterScores = candidates.map(candidate => ({
     ...candidate,
     filterScore: calculateFilterScore(dog, candidate)
   }));
   
-  // Paso 2: Filtrar solo los que superan 70%
   const filteredCandidates = withFilterScores.filter(c => c.filterScore >= 70);
   
   if (filteredCandidates.length === 0) {
     return [];
   }
   
-  // Paso 3: Tomar los 3 mejores del filtro local
   const topCandidates = filteredCandidates
     .sort((a, b) => b.filterScore - a.filterScore)
     .slice(0, 3);
   
-  // Paso 4: Enviar SOLO esos 3 a Gemini
   const withFinalScores = await Promise.all(
-  topCandidates.map(async candidate => {
-    const result = await calculateSimilarityWithGemini(dog, candidate, candidate.filterScore);
-    return {
-      ...candidate,
-      similarity: result.similarity,
-      explanation: result.explanation
-    };
-  })
-);
+    topCandidates.map(async candidate => {
+      const result = await calculateSimilarityWithGemini(dog, candidate, candidate.filterScore);
+      return {
+        ...candidate,
+        similarity: result.similarity,
+        explanation: result.explanation
+      };
+    })
+  );
   
-  // Paso 5: Ordenar por similitud final
   return withFinalScores.sort((a, b) => b.similarity - a.similarity);
 }
 
@@ -188,10 +175,6 @@ function getConfidenceText(percentage) {
   return 'Baja';
 }
 
-// ============================================
-// FUNCIÓN PARA CARGAR COMENTARIOS
-// ============================================
-
 async function loadComments(dogId) {
   try {
     const response = await fetch(`${API_URL}/api/dogs/${dogId}/comments`);
@@ -204,14 +187,9 @@ async function loadComments(dogId) {
   return [];
 }
 
-// ============================================
-// FUNCIÓN PRINCIPAL SHOW DETAIL
-// ============================================
-
 async function showDetail(id) {
   console.log('🔍 showDetail llamada con id:', id);
   
-  // Guardar el dogId actual para los comentarios
   currentDogId = id;
   
   if (!window.ALL_DOGS || window.ALL_DOGS.length === 0) {
@@ -237,10 +215,8 @@ async function showDetail(id) {
     return;
   }
   
-  // Cargar comentarios
   const comments = await loadComments(id);
   
-  // Generar HTML de comentarios dinámicos
   const commentsHtml = comments.map(comment => {
     const userInitial = comment.user_name ? comment.user_name.charAt(0).toUpperCase() : '?';
     const timeAgo = getTimeAgo(new Date(comment.created_at));
@@ -261,15 +237,9 @@ async function showDetail(id) {
     ? commentsHtml 
     : '<div class="empty-state"><p>No hay comentarios aún. ¡Sé el primero en comentar!</p></div>';
   
-  // Verificar si el usuario actual es el dueño del reporte
   const currentUser = getCurrentUser();
-  console.log('Usuario actual:', currentUser);
-  console.log('user_id del perro:', dog.user_id);
-  console.log('¿Es dueño?', currentUser && currentUser.id === dog.user_id);
-  
   const isOwner = currentUser && currentUser.id === dog.user_id;
   
-  // Obtener matches inteligentes
   let matchesHtml = '';
   let confidenceClass = 'high';
   let confidenceText = 'Alta';
@@ -280,7 +250,6 @@ async function showDetail(id) {
     confidenceClass = getMatchColor(bestMatchPercentage);
     confidenceText = getConfidenceText(bestMatchPercentage);
     
-        // Dentro de getSmartMatches o en la parte donde se muestran los matches
     matchesHtml = smartMatches.map(match => {
       const cls = getMatchColor(match.similarity);
       const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
@@ -299,6 +268,7 @@ async function showDetail(id) {
         </div>
       </div>`;
     }).join('');
+  }
   
   if (!matchesHtml) {
     matchesHtml = '<div class="empty-state" style="padding:20px"><p>No se encontraron perros similares en este momento.</p></div>';
@@ -318,20 +288,20 @@ async function showDetail(id) {
       </div>
       <div class="detail-grid">
         <div class="detail-img-col">
-            <div class="detail-img" style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; background:#f0f0f0">
-              ${(() => {
-                const photoUrl = dog.photos && dog.photos[0];
-                if (photoUrl && photoUrl.includes('cloudinary')) {
-                  return `<img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover" alt="Foto de ${dog.name}" onerror="this.parentElement.innerHTML='<div style=\'font-size:6rem\'>🐕</div>'" />`;
-                } else if (photoUrl && photoUrl.startsWith('/uploads/')) {
-                  return `<img src="${API_URL}${photoUrl}" style="width:100%; height:100%; object-fit:cover" alt="Foto de ${dog.name}" onerror="this.parentElement.innerHTML='<div style=\'font-size:6rem\'>🐕</div>'" />`;
-                } else {
-                  return `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">🐕</div>`;
-                }
-              })()}
-            </div>
-            ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} RECOMPENSA</div>` : ''}
+          <div class="detail-img" style="position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; min-height:200px; background:#f0f0f0">
+            ${(() => {
+              const photoUrl = dog.photos && dog.photos[0];
+              if (photoUrl && photoUrl.includes('cloudinary')) {
+                return `<img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover" alt="Foto de ${dog.name}" onerror="this.parentElement.innerHTML='<div style=\'font-size:6rem\'>🐕</div>'" />`;
+              } else if (photoUrl && photoUrl.startsWith('/uploads/')) {
+                return `<img src="${API_URL}${photoUrl}" style="width:100%; height:100%; object-fit:cover" alt="Foto de ${dog.name}" onerror="this.parentElement.innerHTML='<div style=\'font-size:6rem\'>🐕</div>'" />`;
+              } else {
+                return `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:6rem">🐕</div>`;
+              }
+            })()}
           </div>
+          ${dog.reward ? `<div class="reward-chip">💰 ${dog.reward} RECOMPENSA</div>` : ''}
+        </div>
         <div class="detail-info-col">
           <div class="info-card">
             <h3>Última Vez Visto / Encontrado</h3>
@@ -402,10 +372,6 @@ async function showDetail(id) {
   detailContainer.innerHTML = html;
   showPage('detail');
 }
-
-// ============================================
-// FUNCIONES AUXILIARES
-// ============================================
 
 function shareDog(dogId) {
   const dog = window.ALL_DOGS?.find(d => d.id == dogId);
@@ -523,9 +489,8 @@ window.addComment = addComment;
 window.markAsReunited = markAsReunited;
 window.calculateDistance = calculateDistance;
 window.calculateFilterScore = calculateFilterScore;
-window.calculateSimilarity = calculateFilterScore; // Compatibilidad
+window.calculateSimilarity = calculateFilterScore;
 window.calculateSimilarityWithGemini = calculateSimilarityWithGemini;
 window.getSmartMatches = getSmartMatches;
 window.getMatchColor = getMatchColor;
 window.getConfidenceText = getConfidenceText;
-
