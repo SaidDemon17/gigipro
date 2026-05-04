@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import 'dotenv/config';
 import { neon } from '@neondatabase/serverless';
 import express from 'express';
@@ -24,6 +25,7 @@ if (!fs.existsSync('uploads')) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -482,6 +484,68 @@ app.post('/api/dogs/:dogId/comments', async (req, res) => {
   } catch (error) {
     console.error('Error agregando comentario:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+// ============================================
+// ENDPOINT DE GEMINI PARA COMPARAR IMÁGENES
+// ============================================
+
+app.post('/api/compare-images', async (req, res) => {
+  try {
+    const { imageUrl1, imageUrl2 } = req.body;
+    
+    if (!imageUrl1 || !imageUrl2) {
+      return res.status(400).json({ success: false, error: 'Se requieren dos URLs de imágenes' });
+    }
+    
+    console.log('🔍 Comparando imágenes con Gemini...');
+    
+    // Obtener las imágenes
+    const response1 = await fetch(imageUrl1);
+    const response2 = await fetch(imageUrl2);
+    
+    const buffer1 = await response1.arrayBuffer();
+    const buffer2 = await response2.arrayBuffer();
+    
+    const base64Image1 = Buffer.from(buffer1).toString('base64');
+    const base64Image2 = Buffer.from(buffer2).toString('base64');
+    
+    // Configurar Gemini
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y responde SOLO con un número del 0 al 100 que represente el porcentaje de probabilidad de que sea el MISMO perro. Considera: forma de orejas, patrón de manchas, color de pelaje, tamaño relativo, y cualquier característica única. Responde ÚNICAMENTE con el número, sin texto adicional.`;
+    
+    // Crear mensaje con las dos imágenes
+    const result = await model.generateContent([
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: base64Image1
+        }
+      },
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: base64Image2
+        }
+      }
+    ]);
+    
+    const response = await result.response;
+    const similarityText = response.text();
+    const similarityPercentage = parseInt(similarityText) || 0;
+    
+    console.log(`📊 Similitud Gemini: ${similarityPercentage}%`);
+    
+    res.json({ 
+      success: true, 
+      similarityPercentage: Math.min(100, Math.max(0, similarityPercentage))
+    });
+    
+  } catch (error) {
+    console.error('Error en Gemini:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 // ============================================
