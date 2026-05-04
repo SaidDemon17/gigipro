@@ -148,11 +148,9 @@ async function getSmartMatches(dog, allDogs) {
   const topCandidates = filteredCandidates
     .sort((a, b) => b.filterScore - a.filterScore)
     .slice(0, 3);
-    
-    // Dentro de getSmartMatches, antes de enviar a Gemini
+  
   const withFinalScores = await Promise.all(
     topCandidates.map(async (candidate, index) => {
-      // Esperar 1 segundo entre cada solicitud
       if (index > 0) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -214,6 +212,16 @@ async function showDetail(id) {
   
   console.log('✅ Mostrando detalle de:', dog.name || 'Desconocido');
   
+  // 🔥 LOG PARA DEPURAR EL BOTÓN 🔥
+  const currentUser = getCurrentUser();
+  console.log('👤 currentUser:', currentUser);
+  console.log('🐕 dog.user_id:', dog.user_id, 'tipo:', typeof dog.user_id);
+  console.log('👤 currentUser.id:', currentUser?.id, 'tipo:', typeof currentUser?.id);
+  console.log('✅ ¿Son iguales?', currentUser && currentUser.id == dog.user_id);
+  
+  const isOwner = currentUser && currentUser.id == dog.user_id;
+  console.log('🎯 isOwner final:', isOwner);
+  
   const detailContainer = document.getElementById('detail-content');
   if (!detailContainer) {
     console.error('❌ Contenedor detail-content no encontrado');
@@ -241,9 +249,6 @@ async function showDetail(id) {
   const commentsSectionHtml = comments.length > 0 
     ? commentsHtml 
     : '<div class="empty-state"><p>No hay comentarios aún. ¡Sé el primero en comentar!</p></div>';
-  
-  const currentUser = getCurrentUser();
-  const isOwner = currentUser && currentUser.id === dog.user_id;
   
   let matchesHtml = '';
   let confidenceClass = 'high';
@@ -320,7 +325,7 @@ async function showDetail(id) {
             
             ${isOwner && dog.status !== 'reunited' ? `
               <button class="contact-btn" style="background: #2E7D32; margin-top:8px" onclick="markAsReunited(${dog.id})">
-                🎉 Marcar como Reunido (Solo Dueño)
+                🎉 Marcar como Reunido
               </button>
             ` : ''}
             
