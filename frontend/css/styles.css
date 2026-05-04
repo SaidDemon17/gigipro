@@ -545,7 +545,15 @@ footer{background:var(--white);border-top:1px solid var(--gray-200);padding:24px
 .pin-dot.found{background:var(--gold)}
 .leaflet-popup-content-wrapper{border-radius:12px;box-shadow:var(--shadow-lg)}
 .leaflet-popup-content{margin:12px;min-width:160px}
-
+.match-explanation {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: var(--gray-100);
+  border-radius: 8px;
+  line-height: 1.4;
+}
 #report-map {
   z-index: 1;
   position: relative;
