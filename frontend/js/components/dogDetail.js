@@ -28,6 +28,10 @@ let currentDogId = null;
 // FUNCIONES DE DISTANCIA Y SIMILITUD
 // ============================================
 
+// ============================================
+// FUNCIONES DE DISTANCIA Y SIMILITUD
+// ============================================
+
 function calculateDistance(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 1000000;
   
@@ -45,61 +49,125 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function calculateSimilarity(dog1, dog2) {
+// Calcular filtro local (raza, color, tamaño, ubicación)
+function calculateFilterScore(dog1, dog2) {
   let score = 0;
   let total = 0;
   
+  // 1. RAZA (40%)
   if (dog1.breed && dog2.breed) {
-    total += 30;
+    total += 40;
     if (dog1.breed.toLowerCase() === dog2.breed.toLowerCase()) {
-      score += 30;
+      score += 40;
     } else if (dog1.breed.toLowerCase().includes(dog2.breed.toLowerCase()) || 
                dog2.breed.toLowerCase().includes(dog1.breed.toLowerCase())) {
-      score += 15;
-    }
-  }
-  
-  if (dog1.color && dog2.color) {
-    total += 25;
-    if (dog1.color.toLowerCase() === dog2.color.toLowerCase()) {
-      score += 25;
-    } else if (dog1.color.toLowerCase().includes(dog2.color.toLowerCase()) || 
-               dog2.color.toLowerCase().includes(dog1.color.toLowerCase())) {
-      score += 12;
-    }
-  }
-  
-  if (dog1.size && dog2.size) {
-    total += 20;
-    if (dog1.size === dog2.size) {
       score += 20;
     }
   }
   
+  // 2. COLOR (20%)
+  if (dog1.color && dog2.color) {
+    total += 20;
+    if (dog1.color.toLowerCase() === dog2.color.toLowerCase()) {
+      score += 20;
+    } else if (dog1.color.toLowerCase().includes(dog2.color.toLowerCase()) || 
+               dog2.color.toLowerCase().includes(dog1.color.toLowerCase())) {
+      score += 10;
+    }
+  }
+  
+  // 3. TAMAÑO (20%)
+  if (dog1.size && dog2.size) {
+    total += 20;
+    const sizeMap = { 'small': 1, 'medium': 2, 'large': 3 };
+    const size1 = sizeMap[dog1.size.toLowerCase().split(' ')[0]];
+    const size2 = sizeMap[dog2.size.toLowerCase().split(' ')[0]];
+    
+    if (size1 === size2) {
+      score += 20;
+    } else if (Math.abs(size1 - size2) === 1) {
+      score += 10;
+    }
+  }
+  
+  // 4. UBICACIÓN (20%)
   if (dog1.location_lat && dog2.location_lat) {
-    total += 25;
+    total += 20;
     const distance = calculateDistance(
       dog1.location_lat, dog1.location_lon,
       dog2.location_lat, dog2.location_lon
     );
     const distanceKm = distance / 1000;
     const locationScore = Math.max(0, 100 - (distanceKm * 10));
-    score += locationScore * 0.25;
+    score += locationScore * 0.2;
   }
   
   return total > 0 ? Math.round((score / total) * 100) : 0;
 }
 
-function getSmartMatches(dog, allDogs) {
+// Calcular similitud final combinando filtro + Gemini
+async function calculateSimilarityWithGemini(dog1, dog2, filterScore) {
+  if (!dog1.photos?.length || !dog2.photos?.length) {
+    return filterScore;
+  }
+  
+  try {
+    const response = await fetch(`${API_URL}/api/compare-images`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageUrl1: dog1.photos[0],
+        imageUrl2: dog2.photos[0]
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // 60% filtro local + 40% Gemini
+      const finalScore = (filterScore * 0.6) + (data.similarityPercentage * 0.4);
+      return Math.round(finalScore);
+    }
+  } catch (error) {
+    console.error('Error llamando a Gemini:', error);
+  }
+  
+  return filterScore;
+}
+
+// Obtener matches inteligentes con filtro previo
+async function getSmartMatches(dog, allDogs) {
   const oppositeType = dog.type === 'lost' ? 'found' : 'lost';
   const candidates = allDogs.filter(d => d.type === oppositeType && d.id !== dog.id);
   
-  const withScores = candidates.map(candidate => ({
+  // Paso 1: Calcular filtro local para todos
+  const withFilterScores = candidates.map(candidate => ({
     ...candidate,
-    similarity: calculateSimilarity(dog, candidate)
+    filterScore: calculateFilterScore(dog, candidate)
   }));
   
-  return withScores.sort((a, b) => b.similarity - a.similarity).slice(0, 3);
+  // Paso 2: Filtrar solo los que superan 70%
+  const filteredCandidates = withFilterScores.filter(c => c.filterScore >= 70);
+  
+  if (filteredCandidates.length === 0) {
+    return [];
+  }
+  
+  // Paso 3: Tomar los 3 mejores del filtro local
+  const topCandidates = filteredCandidates
+    .sort((a, b) => b.filterScore - a.filterScore)
+    .slice(0, 3);
+  
+  // Paso 4: Enviar SOLO esos 3 a Gemini
+  const withFinalScores = await Promise.all(
+    topCandidates.map(async candidate => ({
+      ...candidate,
+      similarity: await calculateSimilarityWithGemini(dog, candidate, candidate.filterScore)
+    }))
+  );
+  
+  // Paso 5: Ordenar por similitud final
+  return withFinalScores.sort((a, b) => b.similarity - a.similarity);
 }
 
 function getMatchColor(percentage) {
@@ -201,7 +269,7 @@ async function showDetail(id) {
   let confidenceText = 'Alta';
   
   if (window.ALL_DOGS && window.ALL_DOGS.length > 0) {
-    const smartMatches = getSmartMatches(dog, window.ALL_DOGS);
+    const smartMatches = await getSmartMatches(dog, window.ALL_DOGS);
     const bestMatchPercentage = smartMatches.length > 0 ? smartMatches[0].similarity : 0;
     confidenceClass = getMatchColor(bestMatchPercentage);
     confidenceText = getConfidenceText(bestMatchPercentage);
