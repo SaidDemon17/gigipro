@@ -529,4 +529,3 @@ window.getSmartMatches = getSmartMatches;
 window.getMatchColor = getMatchColor;
 window.getConfidenceText = getConfidenceText;
 
-}
