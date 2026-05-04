@@ -28,10 +28,6 @@ let currentDogId = null;
 // FUNCIONES DE DISTANCIA Y SIMILITUD
 // ============================================
 
-// ============================================
-// FUNCIONES DE DISTANCIA Y SIMILITUD
-// ============================================
-
 function calculateDistance(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 1000000;
   
@@ -103,6 +99,11 @@ function calculateFilterScore(dog1, dog2) {
   }
   
   return total > 0 ? Math.round((score / total) * 100) : 0;
+}
+
+// Alias para compatibilidad con código existente
+function calculateSimilarity(dog1, dog2) {
+  return calculateFilterScore(dog1, dog2);
 }
 
 // Calcular similitud final combinando filtro + Gemini
@@ -493,7 +494,6 @@ async function addComment() {
     if (response.ok) {
       showToast('¡Comentario publicado! +5 pts 🎉', 'success');
       document.getElementById('comment-txt').value = '';
-      // Recargar la página para mostrar el nuevo comentario
       location.reload();
     } else {
       throw new Error('Error al publicar');
@@ -504,14 +504,19 @@ async function addComment() {
   }
 }
 
-// Exportar funciones
+// ============================================
+// EXPORTAR FUNCIONES
+// ============================================
+
 window.showDetail = showDetail;
 window.shareDog = shareDog;
 window.printPoster = printPoster;
 window.addComment = addComment;
 window.markAsReunited = markAsReunited;
 window.calculateDistance = calculateDistance;
-window.calculateSimilarity = calculateSimilarity;
+window.calculateFilterScore = calculateFilterScore;
+window.calculateSimilarity = calculateFilterScore; // Compatibilidad
+window.calculateSimilarityWithGemini = calculateSimilarityWithGemini;
 window.getSmartMatches = getSmartMatches;
 window.getMatchColor = getMatchColor;
 window.getConfidenceText = getConfidenceText;
