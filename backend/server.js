@@ -420,10 +420,20 @@ app.post('/api/reports', async (req, res) => {
     `;
     
     console.log('✅ Reporte guardado ID:', result[0].id);
-    res.json({ success: true, report: result[0] });
+    
+    // 👈 Asegúrate de devolver success: true
+    res.json({ 
+      success: true, 
+      report: result[0],
+      message: 'Reporte guardado exitosamente'
+    });
+    
   } catch (error) {
     console.error('❌ Error guardando reporte:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 
