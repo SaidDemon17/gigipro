@@ -44,3 +44,15 @@ function formatDate(dateValue) {
   
   return 'Fecha no disponible';
 }
+// Función para marcar el enlace activo en el navbar
+function setActive(el) {
+  // Remover clase active de todos los enlaces
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.classList.remove('active');
+  });
+  // Agregar clase active al enlace clickeado
+  if (el) {
+    el.classList.add('active');
+  }
+}  
+window.setActive = setActive;
