@@ -428,6 +428,20 @@ async function showDetail(id) {
           </div>
         ` : ''}
         
+        ${!isOwner ? `
+          <div class="ai-placeholder">
+            <div class="ai-placeholder-icon">🔒</div>
+            <h4>🤖 Análisis con IA disponible para el dueño</h4>
+            <p>El dueño de esta publicación puede activar la inteligencia artificial de Gemini para comparar visualmente este perro con otros reportes y encontrar posibles coincidencias.</p>
+            <div class="ai-placeholder-features">
+              <span>✨ Comparación visual avanzada</span>
+              <span>📊 Porcentaje de similitud</span>
+              <span>💬 Explicación detallada</span>
+            </div>
+            <small>💡 Si reconoces este perro, puedes dejar un comentario para ayudar al dueño.</small>
+          </div>
+        ` : ''}
+        
         <div id="ai-results" style="display:none">
           <div class="confidence-badge" id="ai-confidence"></div>
           <div id="ai-matches"></div>
