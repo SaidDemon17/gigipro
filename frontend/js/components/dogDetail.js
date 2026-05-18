@@ -20,87 +20,9 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
 // Variable para almacenar los resultados de IA
 let aiResultsCache = {};
-
-async function generateAIReport(dogId) {
-  const dog = window.ALL_DOGS?.find(d => d.id == dogId);
-  if (!dog) return;
-  
-  const btn = document.getElementById('generate-ai-report-btn');
-  const loading = document.getElementById('ai-loading');
-  const resultsDiv = document.getElementById('ai-results');
-  
-  // Ocultar botón, mostrar loading
-  btn.style.display = 'none';
-  loading.style.display = 'block';
-  
-  try {
-    const smartMatches = await getSmartMatches(dog, window.ALL_DOGS);
-    
-    // Guardar en caché
-    aiResultsCache[dogId] = smartMatches;
-    
-    // Mostrar resultados
-    displayAIResults(smartMatches);
-    
-  } catch (error) {
-    console.error('Error generando reporte IA:', error);
-    showToast('Error al generar el reporte. Intenta nuevamente.', '');
-    
-    // Restaurar botón
-    btn.style.display = 'block';
-    loading.style.display = 'none';
-  }
-}
-
-function displayAIResults(smartMatches) {
-  const resultsDiv = document.getElementById('ai-results');
-  const confidenceDiv = document.getElementById('ai-confidence');
-  const matchesDiv = document.getElementById('ai-matches');
-  
-  if (!smartMatches || smartMatches.length === 0) {
-    confidenceDiv.className = 'confidence-badge low';
-    confidenceDiv.innerHTML = '🎯 No se encontraron coincidencias significativas';
-    matchesDiv.innerHTML = '<div class="empty-state"><p>No se encontraron perros similares con alta probabilidad.</p></div>';
-    resultsDiv.style.display = 'block';
-    return;
-  }
-  
-  const bestMatchPercentage = smartMatches[0].similarity;
-  const confidenceClass = getMatchColor(bestMatchPercentage);
-  const confidenceText = getConfidenceText(bestMatchPercentage);
-  
-  confidenceDiv.className = `confidence-badge ${confidenceClass}`;
-  confidenceDiv.innerHTML = `🎯 Confianza General: ${confidenceText}`;
-  
-  const matchesHtml = smartMatches.map(match => {
-    const cls = getMatchColor(match.similarity);
-    const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
-    
-    return `<div class="match-item" onclick="showDetail(${match.id})" style="cursor:pointer">
-      <div class="match-thumb">${match.emoji || '🐕'}</div>
-      <div style="flex:1">
-        <div class="match-name">${match.name || 'Desconocido'} · ${match.breed || 'Desconocida'}</div>
-        <div class="match-loc">📍 ${(match.location || match.location_address || '').split(',')[0]}</div>
-        <div class="match-bar"><div class="match-fill ${cls}" style="width:${match.similarity}%"></div></div>
-        ${explanationHtml}
-      </div>
-      <div>
-        <div class="match-pct ${cls}">${match.similarity}%</div>
-        <div style="font-size:.72rem;color:var(--gray-400);text-align:right">${getConfidenceText(match.similarity)}</div>
-      </div>
-    </div>`;
-  }).join('');
-  
-  matchesDiv.innerHTML = matchesHtml;
-  resultsDiv.style.display = 'block';
-  
-  // Ocultar loading
-  const loading = document.getElementById('ai-loading');
-  if (loading) loading.style.display = 'none';
-}
-let currentDogId = null;
 
 // ============================================
 // FUNCIONES DE DISTANCIA Y SIMILITUD
@@ -178,6 +100,18 @@ function calculateSimilarity(dog1, dog2) {
   return calculateFilterScore(dog1, dog2);
 }
 
+function getMatchColor(percentage) {
+  if (percentage >= 70) return 'high';
+  if (percentage >= 40) return 'med';
+  return 'low';
+}
+
+function getConfidenceText(percentage) {
+  if (percentage >= 70) return 'Alta';
+  if (percentage >= 40) return 'Media';
+  return 'Baja';
+}
+
 async function calculateSimilarityWithGemini(dog1, dog2, filterScore) {
   if (!dog1.photos?.length || !dog2.photos?.length) {
     return { similarity: filterScore, explanation: null };
@@ -245,17 +179,90 @@ async function getSmartMatches(dog, allDogs) {
   return withFinalScores.sort((a, b) => b.similarity - a.similarity);
 }
 
-function getMatchColor(percentage) {
-  if (percentage >= 70) return 'high';
-  if (percentage >= 40) return 'med';
-  return 'low';
+function displayAIResults(smartMatches) {
+  const resultsDiv = document.getElementById('ai-results');
+  const confidenceDiv = document.getElementById('ai-confidence');
+  const matchesDiv = document.getElementById('ai-matches');
+  
+  if (!resultsDiv) return;
+  
+  if (!smartMatches || smartMatches.length === 0) {
+    confidenceDiv.className = 'confidence-badge low';
+    confidenceDiv.innerHTML = '🎯 No se encontraron coincidencias significativas';
+    matchesDiv.innerHTML = '<div class="empty-state"><p>No se encontraron perros similares con alta probabilidad.</p></div>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  const bestMatchPercentage = smartMatches[0].similarity;
+  const confidenceClass = getMatchColor(bestMatchPercentage);
+  const confidenceText = getConfidenceText(bestMatchPercentage);
+  
+  confidenceDiv.className = `confidence-badge ${confidenceClass}`;
+  confidenceDiv.innerHTML = `🎯 Confianza General: ${confidenceText}`;
+  
+  const matchesHtml = smartMatches.map(match => {
+    const cls = getMatchColor(match.similarity);
+    const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
+    
+    return `<div class="match-item" onclick="showDetail(${match.id})" style="cursor:pointer">
+      <div class="match-thumb">${match.emoji || '🐕'}</div>
+      <div style="flex:1">
+        <div class="match-name">${match.name || 'Desconocido'} · ${match.breed || 'Desconocida'}</div>
+        <div class="match-loc">📍 ${(match.location || match.location_address || '').split(',')[0]}</div>
+        <div class="match-bar"><div class="match-fill ${cls}" style="width:${match.similarity}%"></div></div>
+        ${explanationHtml}
+      </div>
+      <div>
+        <div class="match-pct ${cls}">${match.similarity}%</div>
+        <div style="font-size:.72rem;color:var(--gray-400);text-align:right">${getConfidenceText(match.similarity)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  matchesDiv.innerHTML = matchesHtml;
+  resultsDiv.style.display = 'block';
+  
+  // Ocultar loading
+  const loading = document.getElementById('ai-loading');
+  if (loading) loading.style.display = 'none';
+  const btn = document.getElementById('generate-ai-report-btn');
+  if (btn) btn.style.display = 'block';
 }
 
-function getConfidenceText(percentage) {
-  if (percentage >= 70) return 'Alta';
-  if (percentage >= 40) return 'Media';
-  return 'Baja';
+async function generateAIReport(dogId) {
+  const dog = window.ALL_DOGS?.find(d => d.id == dogId);
+  if (!dog) return;
+  
+  const btn = document.getElementById('generate-ai-report-btn');
+  const loading = document.getElementById('ai-loading');
+  
+  if (!btn || !loading) return;
+  
+  // Ocultar botón, mostrar loading
+  btn.style.display = 'none';
+  loading.style.display = 'block';
+  
+  try {
+    const smartMatches = await getSmartMatches(dog, window.ALL_DOGS);
+    
+    // Guardar en caché
+    aiResultsCache[dogId] = smartMatches;
+    
+    // Mostrar resultados
+    displayAIResults(smartMatches);
+    
+  } catch (error) {
+    console.error('Error generando reporte IA:', error);
+    showToast('Error al generar el reporte. Intenta nuevamente.', '');
+    
+    // Restaurar botón
+    btn.style.display = 'block';
+    loading.style.display = 'none';
+  }
 }
+
+let currentDogId = null;
 
 async function loadComments(dogId) {
   try {
@@ -291,7 +298,6 @@ async function showDetail(id) {
   
   console.log('✅ Mostrando detalle de:', dog.name || 'Desconocido');
   
-  // 🔥 LOG PARA DEPURAR EL BOTÓN 🔥
   const currentUser = getCurrentUser();
   console.log('👤 currentUser:', currentUser);
   console.log('🐕 dog.user_id:', dog.user_id, 'tipo:', typeof dog.user_id);
@@ -328,27 +334,6 @@ async function showDetail(id) {
   const commentsSectionHtml = comments.length > 0 
     ? commentsHtml 
     : '<div class="empty-state"><p>No hay comentarios aún. ¡Sé el primero en comentar!</p></div>';
-  
-  let matchesHtml = '';
-  let confidenceClass = 'high';
-  let confidenceText = 'Alta';
-  
-    // Ya no se ejecuta automáticamente
-  let matchesHtml = '';
-  let confidenceClass = 'high';
-  let confidenceText = 'Alta';
-  
-  // Si ya hay resultados en caché, mostrarlos
-  if (aiResultsCache[id]) {
-    displayAIResults(aiResultsCache[id]);
-  } else {
-    // Mostrar mensaje de que no hay reporte generado
-    matchesHtml = '<div class="empty-state" style="padding:20px"><p>Genera el reporte de IA para ver posibles coincidencias.</p></div>';
-  }
-  
-  if (!matchesHtml) {
-    matchesHtml = '<div class="empty-state" style="padding:20px"><p>No se encontraron perros similares en este momento.</p></div>';
-  }
   
   const html = `
     <div class="detail-page">
@@ -422,7 +407,7 @@ async function showDetail(id) {
           </div>
         </div>
       </div>
-        <div class="ai-section">
+      <div class="ai-section">
         <div class="ai-header">
           <div class="ai-icon">🤖</div>
           <div>
@@ -586,3 +571,4 @@ window.calculateSimilarityWithGemini = calculateSimilarityWithGemini;
 window.getSmartMatches = getSmartMatches;
 window.getMatchColor = getMatchColor;
 window.getConfidenceText = getConfidenceText;
+window.generateAIReport = generateAIReport;
