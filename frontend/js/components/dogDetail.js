@@ -20,7 +20,86 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+// Variable para almacenar los resultados de IA
+let aiResultsCache = {};
 
+async function generateAIReport(dogId) {
+  const dog = window.ALL_DOGS?.find(d => d.id == dogId);
+  if (!dog) return;
+  
+  const btn = document.getElementById('generate-ai-report-btn');
+  const loading = document.getElementById('ai-loading');
+  const resultsDiv = document.getElementById('ai-results');
+  
+  // Ocultar botón, mostrar loading
+  btn.style.display = 'none';
+  loading.style.display = 'block';
+  
+  try {
+    const smartMatches = await getSmartMatches(dog, window.ALL_DOGS);
+    
+    // Guardar en caché
+    aiResultsCache[dogId] = smartMatches;
+    
+    // Mostrar resultados
+    displayAIResults(smartMatches);
+    
+  } catch (error) {
+    console.error('Error generando reporte IA:', error);
+    showToast('Error al generar el reporte. Intenta nuevamente.', '');
+    
+    // Restaurar botón
+    btn.style.display = 'block';
+    loading.style.display = 'none';
+  }
+}
+
+function displayAIResults(smartMatches) {
+  const resultsDiv = document.getElementById('ai-results');
+  const confidenceDiv = document.getElementById('ai-confidence');
+  const matchesDiv = document.getElementById('ai-matches');
+  
+  if (!smartMatches || smartMatches.length === 0) {
+    confidenceDiv.className = 'confidence-badge low';
+    confidenceDiv.innerHTML = '🎯 No se encontraron coincidencias significativas';
+    matchesDiv.innerHTML = '<div class="empty-state"><p>No se encontraron perros similares con alta probabilidad.</p></div>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  const bestMatchPercentage = smartMatches[0].similarity;
+  const confidenceClass = getMatchColor(bestMatchPercentage);
+  const confidenceText = getConfidenceText(bestMatchPercentage);
+  
+  confidenceDiv.className = `confidence-badge ${confidenceClass}`;
+  confidenceDiv.innerHTML = `🎯 Confianza General: ${confidenceText}`;
+  
+  const matchesHtml = smartMatches.map(match => {
+    const cls = getMatchColor(match.similarity);
+    const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
+    
+    return `<div class="match-item" onclick="showDetail(${match.id})" style="cursor:pointer">
+      <div class="match-thumb">${match.emoji || '🐕'}</div>
+      <div style="flex:1">
+        <div class="match-name">${match.name || 'Desconocido'} · ${match.breed || 'Desconocida'}</div>
+        <div class="match-loc">📍 ${(match.location || match.location_address || '').split(',')[0]}</div>
+        <div class="match-bar"><div class="match-fill ${cls}" style="width:${match.similarity}%"></div></div>
+        ${explanationHtml}
+      </div>
+      <div>
+        <div class="match-pct ${cls}">${match.similarity}%</div>
+        <div style="font-size:.72rem;color:var(--gray-400);text-align:right">${getConfidenceText(match.similarity)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  matchesDiv.innerHTML = matchesHtml;
+  resultsDiv.style.display = 'block';
+  
+  // Ocultar loading
+  const loading = document.getElementById('ai-loading');
+  if (loading) loading.style.display = 'none';
+}
 let currentDogId = null;
 
 // ============================================
@@ -254,30 +333,17 @@ async function showDetail(id) {
   let confidenceClass = 'high';
   let confidenceText = 'Alta';
   
-  if (window.ALL_DOGS && window.ALL_DOGS.length > 0) {
-    const smartMatches = await getSmartMatches(dog, window.ALL_DOGS);
-    const bestMatchPercentage = smartMatches.length > 0 ? smartMatches[0].similarity : 0;
-    confidenceClass = getMatchColor(bestMatchPercentage);
-    confidenceText = getConfidenceText(bestMatchPercentage);
-    
-    matchesHtml = smartMatches.map(match => {
-      const cls = getMatchColor(match.similarity);
-      const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
-      
-      return `<div class="match-item" onclick="showDetail(${match.id})" style="cursor:pointer">
-        <div class="match-thumb">${match.emoji || '🐕'}</div>
-        <div style="flex:1">
-          <div class="match-name">${match.name || 'Desconocido'} · ${match.breed || 'Desconocida'}</div>
-          <div class="match-loc">📍 ${(match.location || match.location_address || '').split(',')[0]}</div>
-          <div class="match-bar"><div class="match-fill ${cls}" style="width:${match.similarity}%"></div></div>
-          ${explanationHtml}
-        </div>
-        <div>
-          <div class="match-pct ${cls}">${match.similarity}%</div>
-          <div style="font-size:.72rem;color:var(--gray-400);text-align:right">${getConfidenceText(match.similarity)}</div>
-        </div>
-      </div>`;
-    }).join('');
+    // Ya no se ejecuta automáticamente
+  let matchesHtml = '';
+  let confidenceClass = 'high';
+  let confidenceText = 'Alta';
+  
+  // Si ya hay resultados en caché, mostrarlos
+  if (aiResultsCache[id]) {
+    displayAIResults(aiResultsCache[id]);
+  } else {
+    // Mostrar mensaje de que no hay reporte generado
+    matchesHtml = '<div class="empty-state" style="padding:20px"><p>Genera el reporte de IA para ver posibles coincidencias.</p></div>';
   }
   
   if (!matchesHtml) {
@@ -356,16 +422,32 @@ async function showDetail(id) {
           </div>
         </div>
       </div>
-      <div class="ai-section">
+        <div class="ai-section">
         <div class="ai-header">
           <div class="ai-icon">🤖</div>
           <div>
             <div style="font-weight:700">Coincidencias con IA</div>
-            <div style="font-size:.82rem;color:var(--gray-600)">Posibles coincidencias encontradas basadas en apariencia y ubicación</div>
+            <div style="font-size:.82rem;color:var(--gray-600)">Análisis visual con Gemini para encontrar posibles coincidencias</div>
           </div>
         </div>
-        <div class="confidence-badge ${confidenceClass}">🎯 Confianza General: ${confidenceText}</div>
-        ${matchesHtml}
+        
+        ${isOwner && dog.status !== 'reunited' ? `
+          <div id="ai-generate-section">
+            <button id="generate-ai-report-btn" class="btn btn-primary" style="width:100%; margin-bottom:16px" onclick="generateAIReport(${dog.id})">
+              🤖 Generar Reporte de IA
+            </button>
+            <div id="ai-loading" style="display:none; text-align:center; padding:20px">
+              <div class="loading-spinner"></div>
+              <p style="margin-top:12px">Analizando imágenes con IA... Esto puede tomar unos segundos</p>
+            </div>
+          </div>
+        ` : ''}
+        
+        <div id="ai-results" style="display:none">
+          <div class="confidence-badge" id="ai-confidence"></div>
+          <div id="ai-matches"></div>
+        </div>
+        
         <div class="ai-disclaimer">⚠️ Esto es una sugerencia basada en IA, no una confirmación. Siempre verifica en persona.</div>
       </div>
       <div class="comments-section">
