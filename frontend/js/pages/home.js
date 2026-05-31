@@ -391,7 +391,9 @@ async function renderHomeGrids() {
   if (reunitedContainer && recentReunited.length > 0) {
     reunitedContainer.innerHTML = recentReunited.map(dog => dogCard(dog, false)).join('');
   }
-  
+  console.log('🔍 allLost.length en el momento de renderizar:', allLost.length);
+  console.log('🔍 allLost:', allLost.map(d => d.name));
+  console.log('🔍 recentLost:', recentLost.map(d => d.name));
   // Inicializar carruseles después de renderizar
   setTimeout(() => {
     if (lostTrack) initCarousels();
