@@ -459,7 +459,45 @@ function handleHeroSearch(event) {
     searchHomeDogs();
   }
 }
-
+function searchHomeDogs() {
+  const searchTerm = document.getElementById('hero-search-input')?.value.toLowerCase() || '';
+  
+  if (!searchTerm.trim()) {
+    showToast('Escribe algo para buscar', '');
+    return;
+  }
+  
+  const allDogs = window.ALL_DOGS || [];
+  
+  const filtered = allDogs.filter(dog => {
+    return (dog.name || '').toLowerCase().includes(searchTerm) ||
+           (dog.breed || '').toLowerCase().includes(searchTerm) ||
+           (dog.location || '').toLowerCase().includes(searchTerm) ||
+           (dog.location_address || '').toLowerCase().includes(searchTerm);
+  });
+  
+  if (filtered.length === 0) {
+    showToast('No se encontraron perros con ese criterio', '');
+    return;
+  }
+  
+  const lostFiltered = filtered.filter(d => d.type === 'lost');
+  const foundFiltered = filtered.filter(d => d.type === 'found');
+  
+  if (lostFiltered.length > 0) {
+    window.tempFilteredLost = lostFiltered;
+    showPage('lost');
+    setTimeout(() => {
+      if (typeof renderLostCards === 'function') renderLostCards(lostFiltered);
+    }, 100);
+  } else if (foundFiltered.length > 0) {
+    window.tempFilteredFound = foundFiltered;
+    showPage('found');
+    setTimeout(() => {
+      if (typeof renderFoundCards === 'function') renderFoundCards(foundFiltered);
+    }, 100);
+  }
+}
 // ============================================
 // EXPORTAR FUNCIONES
 // ============================================
