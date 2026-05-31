@@ -146,7 +146,75 @@ async function initDB() {
 // ============================================
 // ENDPOINTS DE USUARIOS
 // ============================================
+// ============================================
+// ENDPOINT PARA ANALIZAR IMAGEN CON GEMINI (raza + color)
+// ============================================
 
+app.post('/api/analyze-dog', async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, error: 'Se requiere una URL de imagen' });
+    }
+    
+    console.log('🔍 Analizando imagen con Gemini 2.5...');
+    
+    // Obtener la imagen
+    const response = await fetch(imageUrl);
+    const buffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(buffer).toString('base64');
+    
+    // Configurar Gemini 2.5
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
+    
+    const prompt = `Analiza esta imagen de un perro y devuelve SOLO un JSON con este formato exacto:
+{
+  "breed": "raza del perro (ej: Golden Retriever, Labrador, etc.)",
+  "color": "color principal del perro (ej: Dorado, Negro, Blanco con manchas marrones)"
+}
+
+Si no puedes identificar la raza, escribe "Desconocida". Si no puedes identificar el color, escribe "Desconocido".
+NO agregues texto adicional fuera del JSON.`;
+    
+    const result = await model.generateContent([
+      { text: prompt },
+      { inlineData: { mimeType: 'image/jpeg', data: base64Image } }
+    ]);
+    
+    const responseText = result.response.text();
+    console.log('📝 Respuesta de Gemini:', responseText);
+    
+    // Extraer JSON de la respuesta
+    let jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    let analysis = { breed: 'Desconocida', color: 'Desconocido' };
+    
+    if (jsonMatch) {
+      try {
+        analysis = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.error('Error parsing JSON:', e);
+      }
+    }
+    
+    console.log(`✅ Raza detectada: ${analysis.breed}, Color: ${analysis.color}`);
+    
+    res.json({ 
+      success: true, 
+      breed: analysis.breed || 'Desconocida',
+      color: analysis.color || 'Desconocido'
+    });
+    
+  } catch (error) {
+    console.error('Error en Gemini analyze-dog:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      breed: 'Desconocida',
+      color: 'Desconocido'
+    });
+  }
+});
 app.post('/api/users/register', async (req, res) => {
   console.log('📝 POST /api/users/register', req.body?.email);
   try {
