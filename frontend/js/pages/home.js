@@ -220,6 +220,9 @@ async function renderHomeGrids() {
   
   const stats = await getStats();
   
+  // ============================================
+  // CALCULAR TODAS LAS VARIABLES PRIMERO
+  // ============================================
   const totalReports = allDogs.length;
   const totalReunited = allDogs.filter(d => d.status === 'reunited').length;
   const activeUsers = JSON.parse(localStorage.getItem('pawfinder_users') || '[]').length;
@@ -279,25 +282,9 @@ async function renderHomeGrids() {
   for (let i = 0; i < recentFound.length; i++) {
     foundCardsHtml += `<div class="carousel-card">${dogCardSimple(recentFound[i])}</div>`;
   }
-   const testHTML = `
-    <div style="max-width:1200px; margin:0 auto; padding:40px 20px; text-align:center">
-      <h1 style="color:#E85D04">🐾 PawFinder</h1>
-      <p>Bienvenido a PawFinder. ${allDogs.length} perros cargados correctamente.</p>
-      <button class="btn btn-primary" onclick="location.reload()" style="padding:10px 24px; background:#E85D04; color:white; border:none; border-radius:8px; cursor:pointer">
-        Recargar
-      </button>
-      <button class="btn btn-outline" onclick="showPage('lost')" style="padding:10px 24px; margin-left:10px; border:1px solid #ccc; border-radius:8px; cursor:pointer">
-        Ver Perros Perdidos
-      </button>
-    </div>
-  `;
   
-  // Insertar HTML de prueba
-  document.getElementById('page-home').innerHTML = testHTML;
-  console.log('✅ HTML de prueba insertado');
-}
-    // ============================================
-  // HTML COMPLETO - CORREGIDO
+  // ============================================
+  // HTML COMPLETO - AHORA CON TODAS LAS VARIABLES DEFINIDAS
   // ============================================
   const homeHTML = `
     <div class="hero-new hero-reduced">
@@ -320,7 +307,6 @@ async function renderHomeGrids() {
       </div>
     </div>
 
-    <!-- Stats Reales -->
     <div class="hero-stats">
       <div class="hero-stats-container">
         <div class="hero-stat">
@@ -342,7 +328,6 @@ async function renderHomeGrids() {
       </div>
     </div>
 
-    <!-- Recently Lost - Carrusel -->
     <div class="section carousel-section">
       <div class="section-header">
         <div>
@@ -362,7 +347,6 @@ async function renderHomeGrids() {
       </div>
     </div>
 
-    <!-- Recently Found - Carrusel -->
     <div class="section carousel-section">
       <div class="section-header">
         <div>
@@ -394,17 +378,16 @@ async function renderHomeGrids() {
     </div>
     ` : ''}
 
-    <!-- Nuestra Misión -->
     <div class="mission-full-section">
       <div class="mission-full-container">
         <div class="mission-full-text">
           <span class="mission-tag">🌟 Nuestra Razón de Ser</span>
           <h2>Una comunidad unida <span>para nunca rendirse</span></h2>
-          <p>En PawFinder, sabemos que perder una mascota es como perder un familiar. Por eso creamos una plataforma que combina <strong>tecnología de inteligencia artificial</strong> con el <strong>poder de una comunidad solidaria</strong>. Juntos, podemos acortar distancias y acelerar los reencuentros.</p>
+          <p>En PawFinder, sabemos que perder una mascota es como perder un familiar. Por eso creamos una plataforma que combina <strong>tecnología de inteligencia artificial</strong> con el <strong>poder de una comunidad solidaria</strong>.</p>
           <div class="mission-features">
-            <div class="mission-feature"><div class="mission-feature-icon">🤖</div><div><h4>IA Avanzada</h4><p>Comparación inteligente de fotos y datos para encontrar coincidencias.</p></div></div>
-            <div class="mission-feature"><div class="mission-feature-icon">📍</div><div><h4>Geolocalización</h4><p>Mapas interactivos para ver perros perdidos cerca de ti.</p></div></div>
-            <div class="mission-feature"><div class="mission-feature-icon">🏆</div><div><h4>Recompensas</h4><p>Gana puntos y reconocimiento por ayudar a reunir familias.</p></div></div>
+            <div class="mission-feature"><div class="mission-feature-icon">🤖</div><div><h4>IA Avanzada</h4><p>Comparación inteligente de fotos y datos.</p></div></div>
+            <div class="mission-feature"><div class="mission-feature-icon">📍</div><div><h4>Geolocalización</h4><p>Mapas interactivos cerca de ti.</p></div></div>
+            <div class="mission-feature"><div class="mission-feature-icon">🏆</div><div><h4>Recompensas</h4><p>Gana puntos por ayudar.</p></div></div>
           </div>
         </div>
         <div class="mission-full-image">
@@ -417,18 +400,16 @@ async function renderHomeGrids() {
       </div>
     </div>
 
-    <!-- How It Works -->
     <div class="how-section">
       <div class="how-title">Cómo Funciona</div>
       <div class="how-sub">Tres simples pasos para reunir a una familia</div>
       <div class="how-cards">
-        <div class="how-card"><div class="how-card-step">PASO 1</div><div class="how-card-icon">📝</div><h3>Reportar</h3><p>Sube una foto y los detalles de tu mascota perdida o encontrada.</p></div>
-        <div class="how-card"><div class="how-card-step">PASO 2</div><div class="how-card-icon">🤖</div><h3>Analizar</h3><p>Nuestra IA compara la información con otros reportes en tu zona.</p></div>
-        <div class="how-card"><div class="how-card-step">PASO 3</div><div class="how-card-icon">💚</div><h3>Reencontrar</h3><p>Recibe notificaciones de posibles coincidencias y actúa rápido.</p></div>
+        <div class="how-card"><div class="how-card-step">PASO 1</div><div class="how-card-icon">📝</div><h3>Reportar</h3><p>Sube una foto y los detalles.</p></div>
+        <div class="how-card"><div class="how-card-step">PASO 2</div><div class="how-card-icon">🤖</div><h3>Analizar</h3><p>IA compara con otros reportes.</p></div>
+        <div class="how-card"><div class="how-card-step">PASO 3</div><div class="how-card-icon">💚</div><h3>Reencontrar</h3><p>Recibe notificaciones de coincidencias.</p></div>
       </div>
     </div>
 
-    <!-- CTA Section -->
     <div class="cta-section">
       <h2>¿Listo para Hacer la Diferencia?</h2>
       <p>Tu ayuda puede reunir a una familia con su mejor amigo.</p>
@@ -438,22 +419,19 @@ async function renderHomeGrids() {
       </div>
     </div>
 
-    <!-- Footer -->
     <footer>
       <div class="footer-container">
         <div class="footer-grid">
           <div class="footer-col">
             <div class="footer-logo"><img src="assets/images/logo.png" alt="PawFinder" class="footer-logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 fill=%27%23E85D04%27/%3E%3Ctext x=%2750%27 y=%2770%27 font-size=%2750%27 text-anchor=%27middle%27 fill=%27white%27%3E🐾%3C/text%3E%3C/svg%3E'">PawFinder</div>
-            <p class="footer-description">Conectando familias con sus mascotas perdidas mediante tecnología de inteligencia artificial y una comunidad solidaria.</p>
+            <p class="footer-description">Conectando familias con sus mascotas perdidas.</p>
             <div class="footer-social"><a href="#" class="social-icon">📘</a><a href="#" class="social-icon">📷</a><a href="#" class="social-icon">🐦</a><a href="#" class="social-icon">💬</a></div>
           </div>
-          <div class="footer-col"><h4>Plataforma</h4><ul><li><a href="#" onclick="showPage('lost')">Perros Perdidos</a></li><li><a href="#" onclick="showPage('found')">Perros Encontrados</a></li><li><a href="#" onclick="showPage('map')">Mapa Interactivo</a></li><li><a href="#" onclick="showPage('ranking')">Ranking</a></li></ul></div>
-          <div class="footer-col"><h4>Recursos</h4><ul><li><a href="#" onclick="showPage('report')">Reportar un Perro</a></li><li><a href="#" onclick="showPage('account')">Mi Cuenta</a></li><li><a href="#">Preguntas Frecuentes</a></li><li><a href="#">Términos y Condiciones</a></li></ul></div>
-          <div class="footer-col"><h4>Contacto</h4><ul><li>📧 ayuda@pawfinder.com</li><li>📞 +51 1 234 5678</li><li>📍 Lima, Perú</li></ul>
-            <div class="footer-newsletter"><p>Recibe notificaciones de perros perdidos en tu zona</p><div class="newsletter-input"><input type="email" placeholder="Tu email"><button class="btn btn-primary btn-sm">Suscribirse</button></div></div>
-          </div>
+          <div class="footer-col"><h4>Plataforma</h4><ul><li><a href="#" onclick="showPage('lost')">Perros Perdidos</a></li><li><a href="#" onclick="showPage('found')">Perros Encontrados</a></li><li><a href="#" onclick="showPage('map')">Mapa</a></li><li><a href="#" onclick="showPage('ranking')">Ranking</a></li></ul></div>
+          <div class="footer-col"><h4>Recursos</h4><ul><li><a href="#" onclick="showPage('report')">Reportar</a></li><li><a href="#" onclick="showPage('account')">Mi Cuenta</a></li></ul></div>
+          <div class="footer-col"><h4>Contacto</h4><ul><li>📧 ayuda@pawfinder.com</li><li>📍 Lima, Perú</li></ul></div>
         </div>
-        <div class="footer-bottom"><p>🐾 Hecho con amor para nuestros amigos peludos - PawFinder 2026</p></div>
+        <div class="footer-bottom"><p>🐾 Hecho con amor - PawFinder 2026</p></div>
       </div>
     </footer>
   `;
@@ -473,58 +451,8 @@ async function renderHomeGrids() {
       initCarousels();
     }
   }, 100);
-
-  
-
-// ============================================
-// FUNCIONES DE BÚSQUEDA
-// ============================================
-
-function handleHeroSearch(event) {
-  if (event.key === 'Enter') {
-    searchHomeDogs();
-  }
 }
 
-function searchHomeDogs() {
-  const searchTerm = document.getElementById('hero-search-input')?.value.toLowerCase() || '';
-  
-  if (!searchTerm.trim()) {
-    showToast('Escribe algo para buscar', '');
-    return;
-  }
-  
-  const allDogs = window.ALL_DOGS || [];
-  
-  const filtered = allDogs.filter(dog => {
-    return (dog.name || '').toLowerCase().includes(searchTerm) ||
-           (dog.breed || '').toLowerCase().includes(searchTerm) ||
-           (dog.location || '').toLowerCase().includes(searchTerm) ||
-           (dog.location_address || '').toLowerCase().includes(searchTerm);
-  });
-  
-  if (filtered.length === 0) {
-    showToast('No se encontraron perros con ese criterio', '');
-    return;
-  }
-  
-  const lostFiltered = filtered.filter(d => d.type === 'lost');
-  const foundFiltered = filtered.filter(d => d.type === 'found');
-  
-  if (lostFiltered.length > 0) {
-    window.tempFilteredLost = lostFiltered;
-    showPage('lost');
-    setTimeout(() => {
-      if (typeof renderLostCards === 'function') renderLostCards(lostFiltered);
-    }, 100);
-  } else if (foundFiltered.length > 0) {
-    window.tempFilteredFound = foundFiltered;
-    showPage('found');
-    setTimeout(() => {
-      if (typeof renderFoundCards === 'function') renderFoundCards(foundFiltered);
-    }, 100);
-  }
-}
 
 // ============================================
 // EXPORTAR FUNCIONES
