@@ -454,7 +454,11 @@ async function renderHomeGrids() {
     }
   }, 100);
 }
-
+function handleHeroSearch(event) {
+  if (event.key === 'Enter') {
+    searchHomeDogs();
+  }
+}
 
 // ============================================
 // EXPORTAR FUNCIONES
