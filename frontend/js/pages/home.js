@@ -43,38 +43,60 @@ let carouselIntervals = {};
 
 function scrollCarousel(trackId, direction) {
   const track = document.getElementById(trackId);
-  if (!track) return;
+  if (!track) {
+    console.log('❌ Track no encontrado:', trackId);
+    return;
+  }
   
-  const card = track.querySelector('.carousel-card');
-  if (!card) return;
-  
-  const cardWidth = card.offsetWidth + 20;
+  // Ancho fijo de tarjeta (280px) + gap (20px) = 300px
+  const cardWidth = 300;
   const scrollAmount = cardWidth * direction;
+  const currentScroll = track.scrollLeft;
+  const maxScroll = track.scrollWidth - track.clientWidth;
   
-  track.scrollBy({
-    left: scrollAmount,
+  let newScroll = currentScroll + scrollAmount;
+  
+  // Efecto infinito: si llega al final, vuelve al inicio
+  if (newScroll >= maxScroll) {
+    newScroll = 0;
+  } else if (newScroll < 0) {
+    newScroll = maxScroll;
+  }
+  
+  track.scrollTo({
+    left: newScroll,
     behavior: 'smooth'
   });
-  
-  if (carouselIntervals[trackId]) {
-    clearInterval(carouselIntervals[trackId]);
-  }
-  startAutoScroll(trackId);
 }
 
 function startAutoScroll(trackId) {
+  if (carouselIntervals[trackId]) {
+    clearInterval(carouselIntervals[trackId]);
+  }
+  
   carouselIntervals[trackId] = setInterval(() => {
     const track = document.getElementById(trackId);
-    if (track && track.closest('.carousel-section')?.matches(':hover')) {
-      return;
+    if (track) {
+      // Verificar si el mouse está sobre el carrusel
+      const carouselSection = track.closest('.carousel-section');
+      if (carouselSection && carouselSection.matches(':hover')) {
+        return; // No scroll si el mouse está encima
+      }
+      scrollCarousel(trackId, 1);
     }
-    scrollCarousel(trackId, 1);
-  }, 5000);
+  }, 4000); // 4 segundos
 }
 
 function initCarousels() {
+  console.log('🚀 Iniciando carruseles');
   startAutoScroll('home-lost-track');
   startAutoScroll('home-found-track');
+}
+
+function stopCarousels() {
+  Object.keys(carouselIntervals).forEach(key => {
+    clearInterval(carouselIntervals[key]);
+  });
 }
 
 // ============================================
@@ -149,24 +171,24 @@ async function renderHomeGrids() {
     top3 = ranking.slice(0, 3);
   }
   
-  // 🔥 GUARDAR COPIA LOCAL Y GENERAR HTML DIRECTAMENTE 🔥
+  // Guardar copia local y generar HTML
   const lostPerros = [...recentLost];
   const foundPerros = [...recentFound];
   
-  // Generar HTML de las tarjetas MANUALMENTE
+  // Generar HTML de las tarjetas
   let lostCardsHtml = '';
-
   let foundCardsHtml = '';
+  
   for (let i = 0; i < lostPerros.length; i++) {
-  lostCardsHtml += `<div class="carousel-card">${dogCardSimple(lostPerros[i])}</div>`;
-}
-
-for (let i = 0; i < foundPerros.length; i++) {
-  foundCardsHtml += `<div class="carousel-card">${dogCardSimple(foundPerros[i])}</div>`;
-}
-
-console.log('📢 lostCardsHtml generado:', lostCardsHtml.length, 'caracteres');
-console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
+    lostCardsHtml += `<div class="carousel-card">${dogCardSimple(lostPerros[i])}</div>`;
+  }
+  
+  for (let i = 0; i < foundPerros.length; i++) {
+    foundCardsHtml += `<div class="carousel-card">${dogCardSimple(foundPerros[i])}</div>`;
+  }
+  
+  console.log('📢 lostCardsHtml generado:', lostCardsHtml.length, 'caracteres');
+  console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
   
   const homeHTML = `
     <!-- Hero Section -->
@@ -213,24 +235,24 @@ console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
     </div>
 
     <!-- Recently Lost - Carrusel Horizontal -->
-<div class="section carousel-section">
-  <div class="section-header">
-    <div>
-      <div class="section-title">Perros Perdidos Recientemente</div>
-      <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
-    </div>
-    <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
-  </div>
-  <div class="carousel-container">
-    <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
-    <div class="carousel-wrapper">
-      <div class="carousel-track" id="home-lost-track">
-        ${lostCardsHtml}
+    <div class="section carousel-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Perros Perdidos Recientemente</div>
+          <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
+      </div>
+      <div class="carousel-container">
+        <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="home-lost-track">
+            ${lostCardsHtml}
+          </div>
+        </div>
+        <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
       </div>
     </div>
-    <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
-  </div>
-</div>
 
     <!-- Recently Found - Carrusel Horizontal -->
     <div class="section carousel-section">
@@ -470,24 +492,16 @@ console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
     reunitedContainer.innerHTML = recentReunited.map(dog => dogCard(dog, false)).join('');
   }
   
-  // Verificar el track después de renderizar
-  if (lostTrack) {
-    console.log('📢 Track después de renderizar - hijos:', lostTrack.children.length);
-  }
-  if (foundTrack) {
-    console.log('📢 Track found después de renderizar - hijos:', foundTrack.children.length);
-  }
-  
   // Inicializar carruseles después de renderizar
   setTimeout(() => {
-    if (lostTrack) {
-      console.log('📢 Inicializando carrusel perdidos, hijos en track:', lostTrack.children.length);
+    if (lostTrack && lostTrack.children.length > 0) {
+      console.log('📢 Iniciando carrusel perdidos, hijos:', lostTrack.children.length);
       initCarousels();
     }
-    if (foundTrack) {
-      console.log('📢 Inicializando carrusel encontrados, hijos en track:', foundTrack.children.length);
+    if (foundTrack && foundTrack.children.length > 0) {
+      console.log('📢 Iniciando carrusel encontrados, hijos:', foundTrack.children.length);
     }
-  }, 100);
+  }, 500);
 }
 
 // ============================================
@@ -548,3 +562,4 @@ window.renderHomeGrids = renderHomeGrids;
 window.handleHeroSearch = handleHeroSearch;
 window.searchHomeDogs = searchHomeDogs;
 window.scrollCarousel = scrollCarousel;
+window.initCarousels = initCarousels;
