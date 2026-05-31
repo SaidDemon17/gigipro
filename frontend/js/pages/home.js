@@ -1,6 +1,42 @@
 // frontend/js/pages/home.js
 
 // ============================================
+// FUNCIÓN DE TARJETA SIMPLE (DEFINIDA LOCALMENTE POR SEGURIDAD)
+// ============================================
+function dogCardSimple(dog) {
+  const hasPhotos = dog.photos && dog.photos.length > 0 && dog.photos[0];
+  const firstPhoto = hasPhotos ? dog.photos[0] : null;
+  const dogName = dog.name || 'Desconocido';
+  
+  let typeBadge = '';
+  if (dog.status === 'reunited') {
+    typeBadge = `<span class="badge badge-reunited">✅ REUNIDO</span>`;
+  } else if (dog.type === 'lost') {
+    typeBadge = `<span class="badge badge-lost">⚠️ PERDIDO</span>`;
+  } else {
+    typeBadge = `<span class="badge badge-found">📍 ENCONTRADO</span>`;
+  }
+  
+  const imageHtml = firstPhoto 
+    ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">🐕</div>'" />`
+    : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">🐕</div>`;
+  
+  return `
+    <div class="dog-card-simple" onclick="showDetail(${dog.id})">
+      <div class="dog-card-img-simple">
+        ${imageHtml}
+      </div>
+      <div class="dog-card-body-simple">
+        <div class="dog-card-name-simple">
+          <span class="dog-name">${dogName}</span>
+          ${typeBadge}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
 // VARIABLES GLOBALES DEL CARRUSEL
 // ============================================
 let carouselIntervals = {};
@@ -57,6 +93,8 @@ async function getStats() {
 }
 
 async function renderHomeGrids() {
+  console.log('🚀 renderHomeGrids iniciado');
+  
   if (typeof window.loadReportsFromBackend === 'function') {
     await window.loadReportsFromBackend();
   }
@@ -64,6 +102,8 @@ async function renderHomeGrids() {
   await new Promise(resolve => setTimeout(resolve, 100));
   
   const allDogs = window.ALL_DOGS || [];
+  console.log('📊 allDogs:', allDogs.length);
+  
   const stats = await getStats();
   
   const totalReports = allDogs.length;
@@ -95,6 +135,9 @@ async function renderHomeGrids() {
   const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   
+  console.log('📢 recentLost (después de slice):', recentLost.length);
+  console.log('📢 recentLost nombres:', recentLost.map(d => d.name));
+  
   const recentReunited = [...allDogs]
     .filter(d => d.status === 'reunited')
     .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
@@ -106,23 +149,28 @@ async function renderHomeGrids() {
     top3 = ranking.slice(0, 3);
   }
   
-  // 🔥 GUARDAR COPIA LOCAL DE LOS PERROS PARA EL CARRUSEL 🔥
+  // 🔥 GUARDAR COPIA LOCAL Y GENERAR HTML DIRECTAMENTE 🔥
   const lostPerros = [...recentLost];
   const foundPerros = [...recentFound];
   
-  console.log('📢 lostPerros para el carrusel:', lostPerros.length);
-  console.log('📢 lostPerros nombres:', lostPerros.map(d => d.name));
-  console.log('📢 foundPerros para el carrusel:', foundPerros.length);
+  // Generar HTML de las tarjetas MANUALMENTE
+  let lostCardsHtml = '';
+  let lostClonesHtml = '';
+  let foundCardsHtml = '';
+  let foundClonesHtml = '';
   
-  // Función para generar HTML del carrusel
-  const generarHTMLCarrusel = (perros) => {
-    if (!perros || perros.length === 0) return '';
-    let html = '';
-    for (let i = 0; i < perros.length; i++) {
-      html += `<div class="carousel-card">${dogCardSimple(perros[i])}</div>`;
-    }
-    return html;
-  };
+  for (let i = 0; i < lostPerros.length; i++) {
+    lostCardsHtml += `<div class="carousel-card">${dogCardSimple(lostPerros[i])}</div>`;
+    lostClonesHtml += `<div class="carousel-card clone">${dogCardSimple(lostPerros[i])}</div>`;
+  }
+  
+  for (let i = 0; i < foundPerros.length; i++) {
+    foundCardsHtml += `<div class="carousel-card">${dogCardSimple(foundPerros[i])}</div>`;
+    foundClonesHtml += `<div class="carousel-card clone">${dogCardSimple(foundPerros[i])}</div>`;
+  }
+  
+  console.log('📢 lostCardsHtml generado:', lostCardsHtml.length, 'caracteres');
+  console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
   
   const homeHTML = `
     <!-- Hero Section -->
@@ -181,8 +229,8 @@ async function renderHomeGrids() {
         <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
         <div class="carousel-wrapper">
           <div class="carousel-track" id="home-lost-track">
-            ${generarHTMLCarrusel(lostPerros)}
-            ${generarHTMLCarrusel(lostPerros).replace(/carousel-card/g, 'carousel-card clone')}
+            ${lostCardsHtml}
+            ${lostClonesHtml}
           </div>
         </div>
         <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
@@ -202,8 +250,8 @@ async function renderHomeGrids() {
         <button class="carousel-arrow prev-found" onclick="scrollCarousel('home-found-track', -1)">‹</button>
         <div class="carousel-wrapper">
           <div class="carousel-track" id="home-found-track">
-            ${generarHTMLCarrusel(foundPerros)}
-            ${generarHTMLCarrusel(foundPerros).replace(/carousel-card/g, 'carousel-card clone')}
+            ${foundCardsHtml}
+            ${foundClonesHtml}
           </div>
         </div>
         <button class="carousel-arrow next-found" onclick="scrollCarousel('home-found-track', 1)">›</button>
@@ -428,14 +476,22 @@ async function renderHomeGrids() {
     reunitedContainer.innerHTML = recentReunited.map(dog => dogCard(dog, false)).join('');
   }
   
+  // Verificar el track después de renderizar
+  if (lostTrack) {
+    console.log('📢 Track después de renderizar - hijos:', lostTrack.children.length);
+  }
+  if (foundTrack) {
+    console.log('📢 Track found después de renderizar - hijos:', foundTrack.children.length);
+  }
+  
   // Inicializar carruseles después de renderizar
   setTimeout(() => {
     if (lostTrack) {
-      console.log('📢 Inicializando carrusel, hijos en track:', lostTrack.children.length);
+      console.log('📢 Inicializando carrusel perdidos, hijos en track:', lostTrack.children.length);
       initCarousels();
     }
     if (foundTrack) {
-      console.log('📢 Inicializando carrusel found, hijos en track:', foundTrack.children.length);
+      console.log('📢 Inicializando carrusel encontrados, hijos en track:', foundTrack.children.length);
     }
   }, 100);
 }
