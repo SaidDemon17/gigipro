@@ -115,3 +115,5 @@ function dogCardSimple(dog) {
 
 // Exportar la función
 window.dogCardSimple = dogCardSimple;
+window.dogCard = dogCard;
+
