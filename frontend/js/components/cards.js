@@ -35,6 +35,7 @@ function dogCard(dog, showBtn = true) {
   const firstPhoto = hasPhotos ? dog.photos[0] : null;
   
   // Mostrar foto real o emoji
+  // ✅ Corregido
   const imageHtml = firstPhoto 
   ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem\">🐕</div>'" />`
   : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">${dog.emoji || '🐕'}</div>`;
