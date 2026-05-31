@@ -1161,6 +1161,26 @@ footer {
     width: 260px;
   }
 }
+/* FORZAR TEXTO BLANCO EN TODO EL HERO */
+.hero-new,
+.hero-new *,
+.hero-new .hero-content,
+.hero-new .hero-content h1,
+.hero-new .hero-content h1 span,
+.hero-new .hero-content p,
+.hero-new .hero-content .hero-badge {
+  color: white !important;
+}
+
+/* El span del título mantiene su color amarillo */
+.hero-new .hero-content h1 span {
+  color: #FFBA08 !important;
+}
+
+/* El texto dentro del buscador se mantiene oscuro (porque es un input) */
+.hero-search input {
+  color: #212529 !important;
+}
 /* ── ANIMACIONES ── */
 .ai-loading{position:fixed;bottom:20px;right:20px;background:var(--primary);color:white;padding:8px 16px;border-radius:20px;font-size:0.8rem;z-index:1000;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
