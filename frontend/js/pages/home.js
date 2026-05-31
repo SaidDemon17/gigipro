@@ -164,8 +164,13 @@ const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.d
     <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
     <div class="carousel-wrapper">
       <div class="carousel-track" id="home-lost-track">
-        ${recentLost.map(dog => `<div class="carousel-card">${dogCardSimple(dog)}</div>`).join('')}
-        ${recentLost.map(dog => `<div class="carousel-card clone">${dogCardSimple(dog)}</div>`).join('')}
+        ${(() => {
+          console.log('📢 Renderizando carrusel perdidos, recentLost.length:', recentLost.length);
+          return recentLost.map(dog => `<div class="carousel-card">${dogCardSimple(dog)}</div>`).join('');
+        })()}
+        ${(() => {
+          return recentLost.map(dog => `<div class="carousel-card clone">${dogCardSimple(dog)}</div>`).join('');
+        })()}
       </div>
     </div>
     <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
