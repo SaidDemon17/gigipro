@@ -18,9 +18,10 @@ function dogCardSimple(dog) {
   }
   
     // ✅ Corregido
+  // ❌ Línea problemática (aprox. línea 25)
   const imageHtml = firstPhoto 
-    ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem\">🐕</div>'">`
-    : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">🐕</div>`;
+  ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.onerror=null; this.parentElement.innerHTML='🐕'">`
+  : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">🐕</div>`;
   
   return `
     <div class="dog-card-simple" onclick="showDetail(${dog.id})">
