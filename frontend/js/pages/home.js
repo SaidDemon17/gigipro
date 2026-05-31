@@ -12,7 +12,7 @@ function scrollCarousel(trackId, direction) {
   const card = track.querySelector('.carousel-card');
   if (!card) return;
   
-  const cardWidth = card.offsetWidth + 20; // ancho + gap
+  const cardWidth = card.offsetWidth + 20;
   const scrollAmount = cardWidth * direction;
   
   track.scrollBy({
@@ -64,7 +64,6 @@ async function renderHomeGrids() {
   await new Promise(resolve => setTimeout(resolve, 100));
   
   const allDogs = window.ALL_DOGS || [];
-  console.log('📊 allDogs después de esperar:', allDogs.length);
   const stats = await getStats();
   
   const totalReports = allDogs.length;
@@ -72,29 +71,29 @@ async function renderHomeGrids() {
   const activeUsers = JSON.parse(localStorage.getItem('pawfinder_users') || '[]').length;
   const uniqueLocations = [...new Set(allDogs.map(d => d.location_address?.split(',')[1]?.trim()).filter(Boolean))].length;
   
-  // Filtrar perros con fechas válidas (año >= 2000 y año <= año actual + 1)
-const currentYear = new Date().getFullYear();
+  // Filtrar perros con fechas válidas
+  const currentYear = new Date().getFullYear();
 
-const allLost = allDogs.filter(d => 
-  d.type === 'lost' && 
-  d.status !== 'reunited' && 
-  d.date && 
-  !isNaN(new Date(d.date)) &&
-  new Date(d.date).getFullYear() >= 2000 &&
-  new Date(d.date).getFullYear() <= currentYear + 1
-);
+  const allLost = allDogs.filter(d => 
+    d.type === 'lost' && 
+    d.status !== 'reunited' && 
+    d.date && 
+    !isNaN(new Date(d.date)) &&
+    new Date(d.date).getFullYear() >= 2000 &&
+    new Date(d.date).getFullYear() <= currentYear + 1
+  );
 
-const allFound = allDogs.filter(d => 
-  d.type === 'found' && 
-  d.status !== 'reunited' && 
-  d.date && 
-  !isNaN(new Date(d.date)) &&
-  new Date(d.date).getFullYear() >= 2000 &&
-  new Date(d.date).getFullYear() <= currentYear + 1
-);
+  const allFound = allDogs.filter(d => 
+    d.type === 'found' && 
+    d.status !== 'reunited' && 
+    d.date && 
+    !isNaN(new Date(d.date)) &&
+    new Date(d.date).getFullYear() >= 2000 &&
+    new Date(d.date).getFullYear() <= currentYear + 1
+  );
 
-const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+  const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+  const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   
   const recentReunited = [...allDogs]
     .filter(d => d.status === 'reunited')
@@ -106,6 +105,24 @@ const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.d
     const ranking = await getRanking();
     top3 = ranking.slice(0, 3);
   }
+  
+  // 🔥 GUARDAR COPIA LOCAL DE LOS PERROS PARA EL CARRUSEL 🔥
+  const lostPerros = [...recentLost];
+  const foundPerros = [...recentFound];
+  
+  console.log('📢 lostPerros para el carrusel:', lostPerros.length);
+  console.log('📢 lostPerros nombres:', lostPerros.map(d => d.name));
+  console.log('📢 foundPerros para el carrusel:', foundPerros.length);
+  
+  // Función para generar HTML del carrusel
+  const generarHTMLCarrusel = (perros) => {
+    if (!perros || perros.length === 0) return '';
+    let html = '';
+    for (let i = 0; i < perros.length; i++) {
+      html += `<div class="carousel-card">${dogCardSimple(perros[i])}</div>`;
+    }
+    return html;
+  };
   
   const homeHTML = `
     <!-- Hero Section -->
@@ -152,51 +169,46 @@ const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.d
     </div>
 
     <!-- Recently Lost - Carrusel Horizontal -->
-<div class="section carousel-section">
-  <div class="section-header">
-    <div>
-      <div class="section-title">Perros Perdidos Recientemente</div>
-      <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
-    </div>
-    <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
-  </div>
-  <div class="carousel-container">
-    <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
-    <div class="carousel-wrapper">
-      <div class="carousel-track" id="home-lost-track">
-        ${(() => {
-          console.log('📢 Renderizando carrusel perdidos, recentLost.length:', recentLost.length);
-          return recentLost.map(dog => `<div class="carousel-card">${dogCardSimple(dog)}</div>`).join('');
-        })()}
-        ${(() => {
-          return recentLost.map(dog => `<div class="carousel-card clone">${dogCardSimple(dog)}</div>`).join('');
-        })()}
+    <div class="section carousel-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Perros Perdidos Recientemente</div>
+          <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
+      </div>
+      <div class="carousel-container">
+        <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="home-lost-track">
+            ${generarHTMLCarrusel(lostPerros)}
+            ${generarHTMLCarrusel(lostPerros).replace(/carousel-card/g, 'carousel-card clone')}
+          </div>
+        </div>
+        <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
       </div>
     </div>
-    <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
-  </div>
-</div>
 
-<!-- Recently Found - Carrusel Horizontal -->
-<div class="section carousel-section">
-  <div class="section-header">
-    <div>
-      <div class="section-title">Perros Encontrados Recientemente</div>
-      <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
-    </div>
-    <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
-  </div>
-  <div class="carousel-container">
-    <button class="carousel-arrow prev-found" onclick="scrollCarousel('home-found-track', -1)">‹</button>
-    <div class="carousel-wrapper">
-      <div class="carousel-track" id="home-found-track">
-        ${recentFound.map(dog => `<div class="carousel-card">${dogCardSimple(dog)}</div>`).join('')}
-        ${recentFound.map(dog => `<div class="carousel-card clone">${dogCardSimple(dog)}</div>`).join('')}
+    <!-- Recently Found - Carrusel Horizontal -->
+    <div class="section carousel-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Perros Encontrados Recientemente</div>
+          <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
+      </div>
+      <div class="carousel-container">
+        <button class="carousel-arrow prev-found" onclick="scrollCarousel('home-found-track', -1)">‹</button>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="home-found-track">
+            ${generarHTMLCarrusel(foundPerros)}
+            ${generarHTMLCarrusel(foundPerros).replace(/carousel-card/g, 'carousel-card clone')}
+          </div>
+        </div>
+        <button class="carousel-arrow next-found" onclick="scrollCarousel('home-found-track', 1)">›</button>
       </div>
     </div>
-    <button class="carousel-arrow next-found" onclick="scrollCarousel('home-found-track', 1)">›</button>
-  </div>
-</div>
 
     <!-- Recently Reunited -->
     ${recentReunited.length > 0 ? `
@@ -408,21 +420,23 @@ const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.d
   
   document.getElementById('page-home').innerHTML = homeHTML;
   
- 
   const reunitedContainer = document.getElementById('home-reunited-grid');
   const lostTrack = document.getElementById('home-lost-track');
   const foundTrack = document.getElementById('home-found-track');
   
- 
   if (reunitedContainer && recentReunited.length > 0) {
     reunitedContainer.innerHTML = recentReunited.map(dog => dogCard(dog, false)).join('');
   }
-  console.log('🔍 allLost.length en el momento de renderizar:', allLost.length);
-  console.log('🔍 allLost:', allLost.map(d => d.name));
-  console.log('🔍 recentLost:', recentLost.map(d => d.name));
+  
   // Inicializar carruseles después de renderizar
   setTimeout(() => {
-    if (lostTrack) initCarousels();
+    if (lostTrack) {
+      console.log('📢 Inicializando carrusel, hijos en track:', lostTrack.children.length);
+      initCarousels();
+    }
+    if (foundTrack) {
+      console.log('📢 Inicializando carrusel found, hijos en track:', foundTrack.children.length);
+    }
   }, 100);
 }
 
