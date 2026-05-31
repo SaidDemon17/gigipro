@@ -6,24 +6,38 @@ async function renderLostGrid() {
   
   // Usar window.ALL_DOGS
   const allDogs = window.ALL_DOGS || [];
-  const lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');  
+  const lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
+  
   const lostHTML = `
     <div class="filter-bar">
-      <input type="text" id="searchLost" placeholder="Search by name, breed, location…" onkeyup="filterLost()"/>
-      <button class="filter-tag active" onclick="filterLostBy('all')">All</button>
-      <button class="filter-tag" onclick="filterLostBy('Small')">Small</button>
-      <button class="filter-tag" onclick="filterLostBy('Medium')">Medium</button>
-      <button class="filter-tag" onclick="filterLostBy('Large')">Large</button>
-      <button class="filter-tag" onclick="filterLostBy('reward')">With Reward</button>
-      <button class="filter-tag" style="margin-left:auto;background:var(--red);color:#fff;border-color:var(--red)" onclick="showPage('report')">+ Report Lost Dog</button>
+      <input type="text" id="searchLost" placeholder="🔍 Buscar por nombre, raza o ubicación..." onkeyup="filterLost()"/>
+      <div class="filter-tags-container">
+        <button class="filter-tag active" onclick="filterLostBy('all')">Todos</button>
+        <button class="filter-tag" onclick="filterLostBy('Small')">Pequeño</button>
+        <button class="filter-tag" onclick="filterLostBy('Medium')">Mediano</button>
+        <button class="filter-tag" onclick="filterLostBy('Large')">Grande</button>
+        <button class="filter-tag" onclick="filterLostBy('reward')">Con Recompensa</button>
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="showPage('report')">+ Reportar Perro</button>
     </div>
     <div class="section">
       <div class="section-header">
-        <div><div class="section-title">Lost Dogs</div><div class="section-sub" id="lost-count">${lost.length} dogs currently reported missing</div></div>
+        <div>
+          <div class="section-title">Perros Perdidos</div>
+          <div class="section-sub" id="lost-count">${lost.length} perros reportados como perdidos</div>
+        </div>
       </div>
       <div class="dogs-grid" id="lost-grid"></div>
     </div>
-    <footer><div class="footer-inner"><div class="footer-logo"><div style="width:28px;height:28px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem">🐾</div><span style="font-family:'DM Serif Display',serif">PawFinder</span></div><div class="footer-copy">Built with love for our furry friends 🐾</div></div></footer>
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <div class="logo-icon" style="width:28px;height:28px;background:var(--primary);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem">🐾</div>
+          <span style="font-family:'DM Serif Display',serif">PawFinder</span>
+        </div>
+        <div class="footer-copy">🐾 Hecho con amor para nuestros amigos peludos</div>
+      </div>
+    </footer>
   `;
   
   document.getElementById('page-lost').innerHTML = lostHTML;
@@ -35,31 +49,34 @@ function renderLostCards(dogs) {
   if (!container) return;
   
   if (dogs.length === 0) {
-    container.innerHTML = '<div class="empty-state"><p>No lost dogs reported yet. Be the first to report one!</p></div>';
+    container.innerHTML = '<div class="empty-state"><p>No hay perros perdidos reportados en este momento. ¡Sé el primero en reportar uno!</p></div>';
     return;
   }
   
   container.innerHTML = dogs.map(dog => dogCard(dog)).join('');
   const countEl = document.getElementById('lost-count');
-  if (countEl) countEl.textContent = `${dogs.length} dogs currently reported missing`;
+  if (countEl) countEl.textContent = `${dogs.length} perros reportados como perdidos`;
 }
 
 function filterLost() {
   const searchTerm = document.getElementById('searchLost')?.value.toLowerCase() || '';
   const allDogs = window.ALL_DOGS || [];
-  const lost = allDogs.filter(d => d.type === 'lost');
+  // ✅ Excluir perros reunidos también en la búsqueda
+  const lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
   
   const filtered = lost.filter(dog => 
     (dog.name || '').toLowerCase().includes(searchTerm) ||
     (dog.breed || '').toLowerCase().includes(searchTerm) ||
-    (dog.location || '').toLowerCase().includes(searchTerm)
+    (dog.location || '').toLowerCase().includes(searchTerm) ||
+    (dog.location_address || '').toLowerCase().includes(searchTerm)
   );
   renderLostCards(filtered);
 }
 
 function filterLostBy(criteria) {
   const allDogs = window.ALL_DOGS || [];
-  let lost = allDogs.filter(d => d.type === 'lost');
+  // ✅ Excluir perros reunidos
+  let lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
   
   if (criteria === 'reward') {
     lost = lost.filter(dog => dog.reward && dog.reward !== '');
@@ -72,7 +89,7 @@ function filterLostBy(criteria) {
   // Actualizar clases activas
   document.querySelectorAll('.filter-tag').forEach(tag => {
     tag.classList.remove('active');
-    if (tag.textContent.includes(criteria) || (criteria === 'all' && tag.textContent === 'All')) {
+    if (tag.textContent.includes(criteria) || (criteria === 'all' && tag.textContent === 'Todos')) {
       tag.classList.add('active');
     }
   });
