@@ -1,4 +1,50 @@
 // frontend/js/pages/home.js
+
+// ============================================
+// VARIABLES GLOBALES DEL CARRUSEL
+// ============================================
+let carouselIntervals = {};
+
+function scrollCarousel(trackId, direction) {
+  const track = document.getElementById(trackId);
+  if (!track) return;
+  
+  const card = track.querySelector('.carousel-card');
+  if (!card) return;
+  
+  const cardWidth = card.offsetWidth + 20; // ancho + gap
+  const scrollAmount = cardWidth * direction;
+  
+  track.scrollBy({
+    left: scrollAmount,
+    behavior: 'smooth'
+  });
+  
+  if (carouselIntervals[trackId]) {
+    clearInterval(carouselIntervals[trackId]);
+  }
+  startAutoScroll(trackId);
+}
+
+function startAutoScroll(trackId) {
+  carouselIntervals[trackId] = setInterval(() => {
+    const track = document.getElementById(trackId);
+    if (track && track.closest('.carousel-section')?.matches(':hover')) {
+      return;
+    }
+    scrollCarousel(trackId, 1);
+  }, 5000);
+}
+
+function initCarousels() {
+  startAutoScroll('home-lost-track');
+  startAutoScroll('home-found-track');
+}
+
+// ============================================
+// FUNCIONES PRINCIPALES
+// ============================================
+
 async function getStats() {
   try {
     const response = await fetch(`${API_URL}/api/stats`);
@@ -9,31 +55,31 @@ async function getStats() {
     return { lost: 0, found: 0, reunited: 0 };
   }
 }
+
 async function renderHomeGrids() {
-  // Cargar reportes desde el backend
   if (typeof window.loadReportsFromBackend === 'function') {
     await window.loadReportsFromBackend();
   }
   
-  // Obtener todos los perros
   const allDogs = window.ALL_DOGS || [];
-  // Obtener perros reunidos recientemente
-  const recentReunited = [...allDogs]
-  .filter(d => d.status === 'reunited')
-  .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-  .slice(0, 5);
-  // Obtener estadísticas reales
   const stats = await getStats();
-
-  // Filtrar perros perdidos y encontrados
-  const allLost = allDogs.filter(d => d.type === 'lost');
-  const allFound = allDogs.filter(d => d.type === 'found');
   
-  // Ordenar por fecha (más recientes primero) y tomar los últimos 5
+  const totalReports = allDogs.length;
+  const totalReunited = allDogs.filter(d => d.status === 'reunited').length;
+  const activeUsers = JSON.parse(localStorage.getItem('pawfinder_users') || '[]').length;
+  const uniqueLocations = [...new Set(allDogs.map(d => d.location_address?.split(',')[1]?.trim()).filter(Boolean))].length;
+  
+  const allLost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
+  const allFound = allDogs.filter(d => d.type === 'found' && d.status !== 'reunited');
+  
   const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   
-  // Obtener top 3 del ranking
+  const recentReunited = [...allDogs]
+    .filter(d => d.status === 'reunited')
+    .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
+    .slice(0, 5);
+  
   let top3 = [];
   if (typeof getRanking === 'function') {
     const ranking = await getRanking();
@@ -41,67 +87,105 @@ async function renderHomeGrids() {
   }
   
   const homeHTML = `
-    <!-- Hero Section - Nuevo diseño -->
-    <div class="hero-new">
+    <!-- Hero Section -->
+    <div class="hero-new hero-reduced">
       <div class="hero-overlay"></div>
       <div class="hero-content">
-        <div class="hero-badge">🐾 PawFinder</div>
+        <div class="hero-logo">
+          <img src="assets/images/logo.png" alt="PawFinder" class="hero-logo-img">
+        </div>
         <h1>Ayuda a reunir <span>perros perdidos</span><br>con sus familias</h1>
-        <p>Únete a nuestra comunidad y utiliza nuestra inteligencia artificial para encontrar mascotas perdidas. Cada reporte cuenta, cada reencuentro es una historia de éxito.</p>
+        <p>Únete a nuestra comunidad y utiliza nuestra inteligencia artificial para encontrar mascotas perdidas.</p>
         <div class="hero-buttons">
           <button class="btn btn-primary btn-large" onclick="showPage('report')">📝 Reportar Perro</button>
           <button class="btn btn-outline-light btn-large" onclick="showPage('lost')">🔍 Buscar Perros</button>
         </div>
-      </div>
-    </div>
-
-    <!-- Stats Bar -->
-    <div class="stats-bar">
-      <div class="stats-inner">
-        <div class="stat-item">
-          <div class="stat-number">${allLost.length}</div>
-          <div class="stat-label">Perros Perdidos</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number gold">${allFound.length}</div>
-          <div class="stat-label">Perros Encontrados</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number">142</div>
-          <div class="stat-label">Reencuentros Felices</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-number dark">${allDogs.length}</div>
-          <div class="stat-label">Total Reportes</div>
+        <div class="hero-search">
+          <div class="hero-search-icon">🔍</div>
+          <input type="text" placeholder="Busca por nombre, raza o distrito..." id="hero-search-input" onkeypress="handleHeroSearch(event)"/>
+          <button class="hero-search-btn" onclick="searchHomeDogs()">Buscar</button>
         </div>
       </div>
     </div>
 
-    <!-- Recently Lost -->
-    <div class="section">
+    <!-- Stats Reales -->
+    <div class="hero-stats">
+      <div class="hero-stats-container">
+        <div class="hero-stat">
+          <div class="hero-stat-number">${totalReports}</div>
+          <div class="hero-stat-label">perros reportados</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">${totalReunited}</div>
+          <div class="hero-stat-label">perros reunidos</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">${activeUsers || 150}</div>
+          <div class="hero-stat-label">usuarios activos</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">${uniqueLocations || 25}</div>
+          <div class="hero-stat-label">distritos cubiertos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recently Lost - Carrusel Horizontal -->
+<div class="section carousel-section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Perros Perdidos Recientemente</div>
+      <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
+  </div>
+  <div class="carousel-container">
+    <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
+    <div class="carousel-wrapper">
+      <div class="carousel-track" id="home-lost-track">
+        ${recentLost.map(dog => `<div class="carousel-card">${dogCardSimple(dog)}</div>`).join('')}
+        ${recentLost.map(dog => `<div class="carousel-card clone">${dogCardSimple(dog)}</div>`).join('')}
+      </div>
+    </div>
+    <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
+  </div>
+</div>
+
+<!-- Recently Found - Carrusel Horizontal -->
+<div class="section carousel-section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Perros Encontrados Recientemente</div>
+      <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
+  </div>
+  <div class="carousel-container">
+    <button class="carousel-arrow prev-found" onclick="scrollCarousel('home-found-track', -1)">‹</button>
+    <div class="carousel-wrapper">
+      <div class="carousel-track" id="home-found-track">
+        ${recentFound.map(dog => `<div class="carousel-card">${dogCardSimple(dog)}</div>`).join('')}
+        ${recentFound.map(dog => `<div class="carousel-card clone">${dogCardSimple(dog)}</div>`).join('')}
+      </div>
+    </div>
+    <button class="carousel-arrow next-found" onclick="scrollCarousel('home-found-track', 1)">›</button>
+  </div>
+</div>
+
+    <!-- Recently Reunited -->
+    ${recentReunited.length > 0 ? `
+    <div class="section reunited-section">
       <div class="section-header">
         <div>
-          <div class="section-title">Perros Perdidos Recientemente</div>
-          <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+          <div class="section-title">🎉 Reunidos Recientemente</div>
+          <div class="section-sub">¡Estos perros ya están en casa! Gracias por ayudar.</div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
       </div>
-      <div class="dogs-grid" id="home-lost-grid"></div>
+      <div class="dogs-grid" id="home-reunited-grid"></div>
     </div>
+    ` : ''}
 
-    <!-- Recently Found -->
-    <div class="section">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Perros Encontrados Recientemente</div>
-          <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
-      </div>
-      <div class="dogs-grid" id="home-found-grid"></div>
-    </div>
-
-    <!-- Nueva Sección: Nuestra Misión -->
+    <!-- Nuestra Misión -->
     <div class="mission-full-section">
       <div class="mission-full-container">
         <div class="mission-full-text">
@@ -240,36 +324,135 @@ async function renderHomeGrids() {
 
     <!-- Footer -->
     <footer>
-      <div class="footer-inner">
-        <div class="footer-logo">
-          <div class="logo-icon">🐾</div>
-          PawFinder
+      <div class="footer-container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <div class="footer-logo">
+              <img src="assets/images/logo.png" alt="PawFinder" class="footer-logo-img">
+              PawFinder
+            </div>
+            <p class="footer-description">Conectando familias con sus mascotas perdidas mediante tecnología de inteligencia artificial y una comunidad solidaria.</p>
+            <div class="footer-social">
+              <a href="#" class="social-icon">📘</a>
+              <a href="#" class="social-icon">📷</a>
+              <a href="#" class="social-icon">🐦</a>
+              <a href="#" class="social-icon">💬</a>
+            </div>
+          </div>
+          <div class="footer-col">
+            <h4>Plataforma</h4>
+            <ul>
+              <li><a href="#" onclick="showPage('lost')">Perros Perdidos</a></li>
+              <li><a href="#" onclick="showPage('found')">Perros Encontrados</a></li>
+              <li><a href="#" onclick="showPage('map')">Mapa Interactivo</a></li>
+              <li><a href="#" onclick="showPage('ranking')">Ranking</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Recursos</h4>
+            <ul>
+              <li><a href="#" onclick="showPage('report')">Reportar un Perro</a></li>
+              <li><a href="#" onclick="showPage('account')">Mi Cuenta</a></li>
+              <li><a href="#">Preguntas Frecuentes</a></li>
+              <li><a href="#">Términos y Condiciones</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Contacto</h4>
+            <ul>
+              <li>📧 ayuda@pawfinder.com</li>
+              <li>📞 +51 1 234 5678</li>
+              <li>📍 Lima, Perú</li>
+            </ul>
+            <div class="footer-newsletter">
+              <p>Recibe notificaciones de perros perdidos en tu zona</p>
+              <div class="newsletter-input">
+                <input type="email" placeholder="Tu email">
+                <button class="btn btn-primary btn-sm">Suscribirse</button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="footer-links">
-          <a href="#" onclick="showPage('lost')">Perros Perdidos</a>
-          <a href="#" onclick="showPage('found')">Perros Encontrados</a>
-          <a href="#" onclick="showPage('map')">Mapa</a>
-          <a href="#" onclick="showPage('ranking')">Ranking</a>
+        <div class="footer-bottom">
+          <p>🐾 Hecho con amor para nuestros amigos peludos - PawFinder 2026</p>
         </div>
-        <div class="footer-copy">Hecho con amor para nuestros amigos peludos 🐾</div>
       </div>
     </footer>
   `;
   
   document.getElementById('page-home').innerHTML = homeHTML;
   
-  // Renderizar tarjetas
-  const lostContainer = document.getElementById('home-lost-grid');
-  const foundContainer = document.getElementById('home-found-grid');
+ 
+  const reunitedContainer = document.getElementById('home-reunited-grid');
+  const lostTrack = document.getElementById('home-lost-track');
+  const foundTrack = document.getElementById('home-found-track');
   
-  if (lostContainer) {
-    lostContainer.innerHTML = recentLost.map(dog => dogCard(dog, false)).join('');
+ 
+  if (reunitedContainer && recentReunited.length > 0) {
+    reunitedContainer.innerHTML = recentReunited.map(dog => dogCard(dog, false)).join('');
   }
   
-  if (foundContainer) {
-    foundContainer.innerHTML = recentFound.map(dog => dogCard(dog, false)).join('');
+  // Inicializar carruseles después de renderizar
+  setTimeout(() => {
+    if (lostTrack) initCarousels();
+  }, 100);
+}
+
+// ============================================
+// FUNCIONES DE BÚSQUEDA
+// ============================================
+
+function handleHeroSearch(event) {
+  if (event.key === 'Enter') {
+    searchHomeDogs();
   }
 }
 
-// Exportar funciones
+function searchHomeDogs() {
+  const searchTerm = document.getElementById('hero-search-input')?.value.toLowerCase() || '';
+  
+  if (!searchTerm.trim()) {
+    showToast('Escribe algo para buscar', '');
+    return;
+  }
+  
+  const allDogs = window.ALL_DOGS || [];
+  
+  const filtered = allDogs.filter(dog => {
+    return (dog.name || '').toLowerCase().includes(searchTerm) ||
+           (dog.breed || '').toLowerCase().includes(searchTerm) ||
+           (dog.location || '').toLowerCase().includes(searchTerm) ||
+           (dog.location_address || '').toLowerCase().includes(searchTerm);
+  });
+  
+  if (filtered.length === 0) {
+    showToast('No se encontraron perros con ese criterio', '');
+    return;
+  }
+  
+  const lostFiltered = filtered.filter(d => d.type === 'lost');
+  const foundFiltered = filtered.filter(d => d.type === 'found');
+  
+  if (lostFiltered.length > 0) {
+    window.tempFilteredLost = lostFiltered;
+    showPage('lost');
+    setTimeout(() => {
+      if (typeof renderLostCards === 'function') renderLostCards(lostFiltered);
+    }, 100);
+  } else if (foundFiltered.length > 0) {
+    window.tempFilteredFound = foundFiltered;
+    showPage('found');
+    setTimeout(() => {
+      if (typeof renderFoundCards === 'function') renderFoundCards(foundFiltered);
+    }, 100);
+  }
+}
+
+// ============================================
+// EXPORTAR FUNCIONES
+// ============================================
+
 window.renderHomeGrids = renderHomeGrids;
+window.handleHeroSearch = handleHeroSearch;
+window.searchHomeDogs = searchHomeDogs;
+window.scrollCarousel = scrollCarousel;
