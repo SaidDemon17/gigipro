@@ -72,11 +72,29 @@ async function renderHomeGrids() {
   const activeUsers = JSON.parse(localStorage.getItem('pawfinder_users') || '[]').length;
   const uniqueLocations = [...new Set(allDogs.map(d => d.location_address?.split(',')[1]?.trim()).filter(Boolean))].length;
   
-  const allLost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
-  const allFound = allDogs.filter(d => d.type === 'found' && d.status !== 'reunited');
-  
-  const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-  const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+  // Filtrar perros con fechas válidas (año >= 2000 y año <= año actual + 1)
+const currentYear = new Date().getFullYear();
+
+const allLost = allDogs.filter(d => 
+  d.type === 'lost' && 
+  d.status !== 'reunited' && 
+  d.date && 
+  !isNaN(new Date(d.date)) &&
+  new Date(d.date).getFullYear() >= 2000 &&
+  new Date(d.date).getFullYear() <= currentYear + 1
+);
+
+const allFound = allDogs.filter(d => 
+  d.type === 'found' && 
+  d.status !== 'reunited' && 
+  d.date && 
+  !isNaN(new Date(d.date)) &&
+  new Date(d.date).getFullYear() >= 2000 &&
+  new Date(d.date).getFullYear() <= currentYear + 1
+);
+
+const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   
   const recentReunited = [...allDogs]
     .filter(d => d.status === 'reunited')
