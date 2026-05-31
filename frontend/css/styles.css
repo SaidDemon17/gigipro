@@ -1166,16 +1166,7 @@ footer {
   font-size: 0.65rem;
 }
 /* Responsive */
-@media (max-width: 768px) {
-  .carousel-arrow {
-    width: 36px;
-    height: 36px;
-    font-size: 1.4rem;
-  }
-  .carousel-card {
-    width: 260px;
-  }
-}
+
 
 @media (max-width: 768px) {
   .carousel-arrow {
