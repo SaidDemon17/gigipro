@@ -61,7 +61,10 @@ async function renderHomeGrids() {
     await window.loadReportsFromBackend();
   }
   
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   const allDogs = window.ALL_DOGS || [];
+  console.log('📊 allDogs después de esperar:', allDogs.length);
   const stats = await getStats();
   
   const totalReports = allDogs.length;
