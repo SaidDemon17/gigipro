@@ -37,66 +37,91 @@ function dogCardSimple(dog) {
 }
 
 // ============================================
-// VARIABLES GLOBALES DEL CARRUSEL
+// CARRUSEL INFINITO
 // ============================================
-let carouselIntervals = {};
 
-function scrollCarousel(trackId, direction) {
+let carouselIntervals = {};
+let carouselPositions = {};
+
+function initCarousel(trackId, cards) {
   const track = document.getElementById(trackId);
-  if (!track) {
-    console.log('❌ Track no encontrado:', trackId);
-    return;
-  }
+  if (!track) return;
   
-  // Ancho fijo de tarjeta (280px) + gap (20px) = 300px
-  const cardWidth = 300;
-  const scrollAmount = cardWidth * direction;
-  const currentScroll = track.scrollLeft;
-  const maxScroll = track.scrollWidth - track.clientWidth;
+  // Duplicar tarjetas para efecto infinito (3 copias)
+  const originalCards = track.innerHTML;
+  track.innerHTML = originalCards + originalCards + originalCards;
   
-  let newScroll = currentScroll + scrollAmount;
+  // Posición inicial: comenzar en el medio (segundo set)
+  const cardWidth = 300; // 280 + 20 gap
+  const initialPosition = -cardWidth * cards.length;
+  track.style.transform = `translateX(${initialPosition}px)`;
+  carouselPositions[trackId] = initialPosition;
+  carouselPositions[`${trackId}_index`] = 0;
   
-  // Efecto infinito: si llega al final, vuelve al inicio
-  if (newScroll >= maxScroll) {
-    newScroll = 0;
-  } else if (newScroll < 0) {
-    newScroll = maxScroll;
-  }
-  
-  track.scrollTo({
-    left: newScroll,
-    behavior: 'smooth'
-  });
+  return true;
 }
 
-function startAutoScroll(trackId) {
+function scrollCarousel(trackId, direction, cardsLength) {
+  const track = document.getElementById(trackId);
+  if (!track) return;
+  
+  const cardWidth = 300;
+  let currentPosition = carouselPositions[trackId];
+  let currentIndex = carouselPositions[`${trackId}_index`];
+  
+  let newIndex = currentIndex + direction;
+  
+  // Efecto infinito: si pasa los límites, saltar al otro extremo
+  if (newIndex >= cardsLength) {
+    newIndex = 0;
+    // Saltar al principio del track sin animación
+    track.style.transition = 'none';
+    const newPosition = -cardWidth * cardsLength;
+    track.style.transform = `translateX(${newPosition}px)`;
+    carouselPositions[trackId] = newPosition;
+    // Forzar reflow
+    track.offsetHeight;
+    track.style.transition = 'transform 0.5s ease-in-out';
+    currentPosition = newPosition;
+    currentIndex = 0;
+    newIndex = 1;
+  } else if (newIndex < 0) {
+    newIndex = cardsLength - 1;
+    track.style.transition = 'none';
+    const newPosition = -cardWidth * cardsLength;
+    track.style.transform = `translateX(${newPosition}px)`;
+    carouselPositions[trackId] = newPosition;
+    track.offsetHeight;
+    track.style.transition = 'transform 0.5s ease-in-out';
+    currentPosition = newPosition;
+    currentIndex = cardsLength - 1;
+    newIndex = cardsLength - 2;
+  }
+  
+  const newPosition = currentPosition - (cardWidth * direction);
+  track.style.transform = `translateX(${newPosition}px)`;
+  carouselPositions[trackId] = newPosition;
+  carouselPositions[`${trackId}_index`] = newIndex;
+}
+
+function startAutoScroll(trackId, cardsLength) {
   if (carouselIntervals[trackId]) {
     clearInterval(carouselIntervals[trackId]);
   }
   
   carouselIntervals[trackId] = setInterval(() => {
-    const track = document.getElementById(trackId);
-    if (track) {
-      // Verificar si el mouse está sobre el carrusel
-      const carouselSection = track.closest('.carousel-section');
-      if (carouselSection && carouselSection.matches(':hover')) {
-        return; // No scroll si el mouse está encima
-      }
-      scrollCarousel(trackId, 1);
+    const wrapper = document.querySelector(`#${trackId}`)?.closest('.carousel-section');
+    if (wrapper && wrapper.matches(':hover')) {
+      return;
     }
-  }, 4000); // 4 segundos
+    scrollCarousel(trackId, 1, cardsLength);
+  }, 4000);
 }
 
-function initCarousels() {
-  console.log('🚀 Iniciando carruseles');
-  startAutoScroll('home-lost-track');
-  startAutoScroll('home-found-track');
-}
-
-function stopCarousels() {
-  Object.keys(carouselIntervals).forEach(key => {
-    clearInterval(carouselIntervals[key]);
-  });
+function stopAutoScroll(trackId) {
+  if (carouselIntervals[trackId]) {
+    clearInterval(carouselIntervals[trackId]);
+  }
 }
 
 // ============================================
@@ -484,25 +509,38 @@ async function renderHomeGrids() {
   
   document.getElementById('page-home').innerHTML = homeHTML;
   
-  const reunitedContainer = document.getElementById('home-reunited-grid');
+  // Después de document.getElementById('page-home').innerHTML = homeHTML
+
+// Inicializar carruseles
+setTimeout(() => {
   const lostTrack = document.getElementById('home-lost-track');
   const foundTrack = document.getElementById('home-found-track');
+  const lostCardsCount = recentLost.length;
+  const foundCardsCount = recentFound.length;
   
-  if (reunitedContainer && recentReunited.length > 0) {
-    reunitedContainer.innerHTML = recentReunited.map(dog => dogCard(dog, false)).join('');
+  if (lostTrack && lostCardsCount > 0) {
+    initCarousel('home-lost-track', lostCardsCount);
+    startAutoScroll('home-lost-track', lostCardsCount);
+    
+    // Eventos para pausar al hacer hover
+    const lostSection = lostTrack.closest('.carousel-section');
+    if (lostSection) {
+      lostSection.addEventListener('mouseenter', () => stopAutoScroll('home-lost-track'));
+      lostSection.addEventListener('mouseleave', () => startAutoScroll('home-lost-track', lostCardsCount));
+    }
   }
   
-  // Inicializar carruseles después de renderizar
-  setTimeout(() => {
-    if (lostTrack && lostTrack.children.length > 0) {
-      console.log('📢 Iniciando carrusel perdidos, hijos:', lostTrack.children.length);
-      initCarousels();
+  if (foundTrack && foundCardsCount > 0) {
+    initCarousel('home-found-track', foundCardsCount);
+    startAutoScroll('home-found-track', foundCardsCount);
+    
+    const foundSection = foundTrack.closest('.carousel-section');
+    if (foundSection) {
+      foundSection.addEventListener('mouseenter', () => stopAutoScroll('home-found-track'));
+      foundSection.addEventListener('mouseleave', () => startAutoScroll('home-found-track', foundCardsCount));
     }
-    if (foundTrack && foundTrack.children.length > 0) {
-      console.log('📢 Iniciando carrusel encontrados, hijos:', foundTrack.children.length);
-    }
-  }, 500);
-}
+  }
+}, 100);
 
 // ============================================
 // FUNCIONES DE BÚSQUEDA
