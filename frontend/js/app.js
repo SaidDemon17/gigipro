@@ -14,16 +14,5 @@ document.addEventListener('DOMContentLoaded', () => {
   
   console.log('PawFinder initialized successfully! 🐾');
   
-  // Inicializar IA para sugerir razas (si está disponible)
-  setTimeout(() => {
-    if (typeof window.initBreedClassifier === 'function') {
-      window.initBreedClassifier().then(() => {
-        console.log('🧠 IA lista para sugerir razas');
-      }).catch(err => {
-        console.warn('⚠️ IA no disponible:', err);
-      });
-    } else {
-      console.log('ℹ️ Clasificador de razas no cargado (TensorFlow.js no disponible)');
-    }
-  }, 2000);
+  
 });
