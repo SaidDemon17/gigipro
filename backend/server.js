@@ -25,7 +25,9 @@ if (!fs.existsSync('uploads')) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Al inicio del archivo, después de las importaciones
+const genAICompare = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);    // Para comparar imágenes
+const genAIAnalyze = new GoogleGenerativeAI(process.env.GEMINI_API_KEY2);   // Para detectar raza/color
 
 app.use(cors());
 app.use(express.json());
@@ -166,7 +168,7 @@ app.post('/api/analyze-dog', async (req, res) => {
     const base64Image = Buffer.from(buffer).toString('base64');
     
     // Configurar Gemini 2.5
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
+    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
     
     const prompt = `Analiza esta imagen de un perro y devuelve SOLO un JSON con este formato exacto:
 {
