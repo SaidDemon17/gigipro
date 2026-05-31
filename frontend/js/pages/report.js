@@ -430,26 +430,84 @@ function addImagePreview(file, imageUrl = null) {
   container.appendChild(wrapper);
 }
 
+// ============================================
+// ANALIZAR IMAGEN CON GEMINI 2.5
+// ============================================
+
+async function analyzeDogImage(imageFile) {
+  const photoUrl = URL.createObjectURL(imageFile);
+  
+  try {
+    // Primero subir la imagen a Cloudinary para obtener una URL pública
+    const formData = new FormData();
+    formData.append('photos', imageFile);
+    
+    const uploadRes = await fetch(`${API_URL}/api/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!uploadRes.ok) {
+      throw new Error('Error al subir imagen');
+    }
+    
+    const uploadData = await uploadRes.json();
+    const uploadedUrl = uploadData.files[0];
+    
+    if (!uploadedUrl) {
+      throw new Error('No se pudo obtener URL de la imagen');
+    }
+    
+    // Enviar a Gemini para analizar
+    const analyzeRes = await fetch(`${API_URL}/api/analyze-dog`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageUrl: uploadedUrl })
+    });
+    
+    const data = await analyzeRes.json();
+    URL.revokeObjectURL(photoUrl);
+    
+    if (data.success) {
+      return { breed: data.breed, color: data.color };
+    } else {
+      return { breed: 'Desconocida', color: 'Desconocido' };
+    }
+    
+  } catch (error) {
+    console.error('Error analizando imagen:', error);
+    URL.revokeObjectURL(photoUrl);
+    return { breed: 'Desconocida', color: 'Desconocido' };
+  }
+}
+
 async function autoSuggestBreedOnUpload() {
   if (selectedFiles.length === 0) return;
   
   const firstPhoto = selectedFiles[0];
-  const photoUrl = URL.createObjectURL(firstPhoto);
   
-  try {
-    if (typeof window.getDogBreedPredictions === 'function') {
-      const predictions = await window.getDogBreedPredictions(photoUrl);
-      URL.revokeObjectURL(photoUrl);
-      
-      if (predictions?.length) {
-        const breedInput = document.getElementById('breed');
-        breedInput.value = predictions[0].className;
-        breedInput.style.cssText = 'border-color:#2E7D32; background-color:#E8F5E9';
-        showToast(`🤖 IA detectó: ${predictions[0].className}`, 'success');
-      }
+  showToast('🤖 Analizando imagen con IA...', '');
+  
+  const result = await analyzeDogImage(firstPhoto);
+  
+  if (result.breed && result.breed !== 'Desconocida') {
+    const breedInput = document.getElementById('breed');
+    if (breedInput) {
+      breedInput.value = result.breed;
+      breedInput.style.borderColor = '#2E7D32';
+      breedInput.style.backgroundColor = '#E8F5E9';
     }
-  } catch (error) {
-    console.error('Error en IA:', error);
+    
+    const colorInput = document.getElementById('color');
+    if (colorInput && result.color && result.color !== 'Desconocido') {
+      colorInput.value = result.color;
+      colorInput.style.borderColor = '#2E7D32';
+      colorInput.style.backgroundColor = '#E8F5E9';
+    }
+    
+    showToast(`✅ IA detectó: ${result.breed} | Color: ${result.color}`, 'success');
+  } else {
+    showToast('⚠️ No se pudo detectar la raza automáticamente', '');
   }
 }
 
