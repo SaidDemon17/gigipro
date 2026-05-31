@@ -36,8 +36,8 @@ function dogCard(dog, showBtn = true) {
   
   // Mostrar foto real o emoji
   const imageHtml = firstPhoto 
-    ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem\">🐕</div>'" />`
-    : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">${dog.emoji || '🐕'}</div>`;
+  ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem\">🐕</div>'" />`
+  : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">${dog.emoji || '🐕'}</div>`;
   
   const sizeIcon = dogSize === 'Pequeño' ? '🐕' : dogSize === 'Mediano' ? '🐕‍🦺' : '🐕';
   
