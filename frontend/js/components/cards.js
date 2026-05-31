@@ -1,4 +1,3 @@
-
 function dogCard(dog, showBtn = true) {
   const rewardBadge = dog.reward && dog.reward !== '' ? `<span class="badge badge-reward">💰 ${dog.reward}</span>` : '';
   
@@ -34,11 +33,13 @@ function dogCard(dog, showBtn = true) {
   const hasPhotos = dog.photos && dog.photos.length > 0;
   const firstPhoto = hasPhotos ? dog.photos[0] : null;
   
-  // Mostrar foto real o emoji
-  // ✅ Corregido
-  const imageHtml = firstPhoto 
-  ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem\">🐕</div>'" />`
-  : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">${dog.emoji || '🐕'}</div>`;
+  // ✅ CORREGIDO - Sin onerror problemático
+  let imageHtml = '';
+  if (firstPhoto) {
+    imageHtml = `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover">`;
+  } else {
+    imageHtml = `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">🐕</div>`;
+  }
   
   const sizeIcon = dogSize === 'Pequeño' ? '🐕' : dogSize === 'Mediano' ? '🐕‍🦺' : '🐕';
   
@@ -80,6 +81,7 @@ function dogCard(dog, showBtn = true) {
     </div>
   </div>`;
 }
+
 // Tarjeta simplificada para el home (solo imagen + nombre)
 function dogCardSimple(dog) {
   const hasPhotos = dog.photos && dog.photos.length > 0 && dog.photos[0];
@@ -95,9 +97,13 @@ function dogCardSimple(dog) {
     typeBadge = `<span class="badge badge-found">📍 ENCONTRADO</span>`;
   }
   
-  const imageHtml = firstPhoto 
-  ? `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem\">🐕</div>'" />`
-  : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">${dog.emoji || '🐕'}</div>`;
+  // ✅ CORREGIDO - Sin onerror problemático
+  let imageHtml = '';
+  if (firstPhoto) {
+    imageHtml = `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover">`;
+  } else {
+    imageHtml = `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:3rem">🐕</div>`;
+  }
   
   return `
     <div class="dog-card-simple" onclick="showDetail(${dog.id})">
@@ -114,7 +120,6 @@ function dogCardSimple(dog) {
   `;
 }
 
-// Exportar la función
-window.dogCardSimple = dogCardSimple;
+// Exportar las funciones
 window.dogCard = dogCard;
-
+window.dogCardSimple = dogCardSimple;
