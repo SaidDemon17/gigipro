@@ -296,9 +296,171 @@ async function renderHomeGrids() {
   document.getElementById('page-home').innerHTML = testHTML;
   console.log('✅ HTML de prueba insertado');
 }
-  const homeHTML = `...`; // Tu HTML existente aquí (no cambio nada)
-  
+    // ============================================
+  // HTML COMPLETO - CORREGIDO
+  // ============================================
+  const homeHTML = `
+    <div class="hero-new hero-reduced">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-logo">
+          <img src="assets/images/logo.png" alt="PawFinder" class="hero-logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 fill=%27%23E85D04%27/%3E%3Ctext x=%2750%27 y=%2770%27 font-size=%2750%27 text-anchor=%27middle%27 fill=%27white%27%3E🐾%3C/text%3E%3C/svg%3E'">
+        </div>
+        <h1>Ayuda a reunir <span>perros perdidos</span><br>con sus familias</h1>
+        <p>Únete a nuestra comunidad y utiliza nuestra inteligencia artificial para encontrar mascotas perdidas.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-primary btn-large" onclick="showPage('report')">📝 Reportar Perro</button>
+          <button class="btn btn-outline-light btn-large" onclick="showPage('lost')">🔍 Buscar Perros</button>
+        </div>
+        <div class="hero-search">
+          <div class="hero-search-icon">🔍</div>
+          <input type="text" placeholder="Busca por nombre, raza o distrito..." id="hero-search-input" onkeypress="handleHeroSearch(event)"/>
+          <button class="hero-search-btn" onclick="searchHomeDogs()">Buscar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Reales -->
+    <div class="hero-stats">
+      <div class="hero-stats-container">
+        <div class="hero-stat">
+          <div class="hero-stat-number">${totalReports}</div>
+          <div class="hero-stat-label">perros reportados</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">${totalReunited}</div>
+          <div class="hero-stat-label">perros reunidos</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">${activeUsers || 150}</div>
+          <div class="hero-stat-label">usuarios activos</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-number">${uniqueLocations || 25}</div>
+          <div class="hero-stat-label">distritos cubiertos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recently Lost - Carrusel -->
+    <div class="section carousel-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Perros Perdidos Recientemente</div>
+          <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
+      </div>
+      <div class="carousel-container">
+        <button class="carousel-arrow prev-lost" onclick="scrollInfiniteCarousel('home-lost-track', -1)">‹</button>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="home-lost-track">
+            ${lostCardsHtml}
+          </div>
+        </div>
+        <button class="carousel-arrow next-lost" onclick="scrollInfiniteCarousel('home-lost-track', 1)">›</button>
+      </div>
+    </div>
+
+    <!-- Recently Found - Carrusel -->
+    <div class="section carousel-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Perros Encontrados Recientemente</div>
+          <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
+      </div>
+      <div class="carousel-container">
+        <button class="carousel-arrow prev-found" onclick="scrollInfiniteCarousel('home-found-track', -1)">‹</button>
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="home-found-track">
+            ${foundCardsHtml}
+          </div>
+        </div>
+        <button class="carousel-arrow next-found" onclick="scrollInfiniteCarousel('home-found-track', 1)">›</button>
+      </div>
+    </div>
+
+    ${recentReunited.length > 0 ? `
+    <div class="section reunited-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🎉 Reunidos Recientemente</div>
+          <div class="section-sub">¡Estos perros ya están en casa! Gracias por ayudar.</div>
+        </div>
+      </div>
+      <div class="dogs-grid" id="home-reunited-grid"></div>
+    </div>
+    ` : ''}
+
+    <!-- Nuestra Misión -->
+    <div class="mission-full-section">
+      <div class="mission-full-container">
+        <div class="mission-full-text">
+          <span class="mission-tag">🌟 Nuestra Razón de Ser</span>
+          <h2>Una comunidad unida <span>para nunca rendirse</span></h2>
+          <p>En PawFinder, sabemos que perder una mascota es como perder un familiar. Por eso creamos una plataforma que combina <strong>tecnología de inteligencia artificial</strong> con el <strong>poder de una comunidad solidaria</strong>. Juntos, podemos acortar distancias y acelerar los reencuentros.</p>
+          <div class="mission-features">
+            <div class="mission-feature"><div class="mission-feature-icon">🤖</div><div><h4>IA Avanzada</h4><p>Comparación inteligente de fotos y datos para encontrar coincidencias.</p></div></div>
+            <div class="mission-feature"><div class="mission-feature-icon">📍</div><div><h4>Geolocalización</h4><p>Mapas interactivos para ver perros perdidos cerca de ti.</p></div></div>
+            <div class="mission-feature"><div class="mission-feature-icon">🏆</div><div><h4>Recompensas</h4><p>Gana puntos y reconocimiento por ayudar a reunir familias.</p></div></div>
+          </div>
+        </div>
+        <div class="mission-full-image">
+          <div class="mission-stats-card">
+            <div class="stat-circle"><div class="stat-circle-number">+92%</div><div class="stat-circle-label">Tasa de éxito</div></div>
+            <div class="stat-circle"><div class="stat-circle-number">24h</div><div class="stat-circle-label">Respuesta promedio</div></div>
+            <div class="stat-circle"><div class="stat-circle-number">+2.5k</div><div class="stat-circle-label">Miembros activos</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="how-section">
+      <div class="how-title">Cómo Funciona</div>
+      <div class="how-sub">Tres simples pasos para reunir a una familia</div>
+      <div class="how-cards">
+        <div class="how-card"><div class="how-card-step">PASO 1</div><div class="how-card-icon">📝</div><h3>Reportar</h3><p>Sube una foto y los detalles de tu mascota perdida o encontrada.</p></div>
+        <div class="how-card"><div class="how-card-step">PASO 2</div><div class="how-card-icon">🤖</div><h3>Analizar</h3><p>Nuestra IA compara la información con otros reportes en tu zona.</p></div>
+        <div class="how-card"><div class="how-card-step">PASO 3</div><div class="how-card-icon">💚</div><h3>Reencontrar</h3><p>Recibe notificaciones de posibles coincidencias y actúa rápido.</p></div>
+      </div>
+    </div>
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+      <h2>¿Listo para Hacer la Diferencia?</h2>
+      <p>Tu ayuda puede reunir a una familia con su mejor amigo.</p>
+      <div class="cta-btns">
+        <button class="btn btn-primary" onclick="showPage('report')">Reportar un Perro →</button>
+        <button class="btn btn-outline" onclick="showPage('map')">📍 Explorar Mapa</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-container">
+        <div class="footer-grid">
+          <div class="footer-col">
+            <div class="footer-logo"><img src="assets/images/logo.png" alt="PawFinder" class="footer-logo-img" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%27100%27 fill=%27%23E85D04%27/%3E%3Ctext x=%2750%27 y=%2770%27 font-size=%2750%27 text-anchor=%27middle%27 fill=%27white%27%3E🐾%3C/text%3E%3C/svg%3E'">PawFinder</div>
+            <p class="footer-description">Conectando familias con sus mascotas perdidas mediante tecnología de inteligencia artificial y una comunidad solidaria.</p>
+            <div class="footer-social"><a href="#" class="social-icon">📘</a><a href="#" class="social-icon">📷</a><a href="#" class="social-icon">🐦</a><a href="#" class="social-icon">💬</a></div>
+          </div>
+          <div class="footer-col"><h4>Plataforma</h4><ul><li><a href="#" onclick="showPage('lost')">Perros Perdidos</a></li><li><a href="#" onclick="showPage('found')">Perros Encontrados</a></li><li><a href="#" onclick="showPage('map')">Mapa Interactivo</a></li><li><a href="#" onclick="showPage('ranking')">Ranking</a></li></ul></div>
+          <div class="footer-col"><h4>Recursos</h4><ul><li><a href="#" onclick="showPage('report')">Reportar un Perro</a></li><li><a href="#" onclick="showPage('account')">Mi Cuenta</a></li><li><a href="#">Preguntas Frecuentes</a></li><li><a href="#">Términos y Condiciones</a></li></ul></div>
+          <div class="footer-col"><h4>Contacto</h4><ul><li>📧 ayuda@pawfinder.com</li><li>📞 +51 1 234 5678</li><li>📍 Lima, Perú</li></ul>
+            <div class="footer-newsletter"><p>Recibe notificaciones de perros perdidos en tu zona</p><div class="newsletter-input"><input type="email" placeholder="Tu email"><button class="btn btn-primary btn-sm">Suscribirse</button></div></div>
+          </div>
+        </div>
+        <div class="footer-bottom"><p>🐾 Hecho con amor para nuestros amigos peludos - PawFinder 2026</p></div>
+      </div>
+    </footer>
+  `;
+
+  // Insertar HTML completo
   document.getElementById('page-home').innerHTML = homeHTML;
+  console.log('✅ HTML completo insertado, longitud:', homeHTML.length);
   
   const reunitedContainer = document.getElementById('home-reunited-grid');
   if (reunitedContainer && recentReunited.length > 0) {
@@ -311,7 +473,8 @@ async function renderHomeGrids() {
       initCarousels();
     }
   }, 100);
-}
+
+  
 
 // ============================================
 // FUNCIONES DE BÚSQUEDA
