@@ -279,7 +279,23 @@ async function renderHomeGrids() {
   for (let i = 0; i < recentFound.length; i++) {
     foundCardsHtml += `<div class="carousel-card">${dogCardSimple(recentFound[i])}</div>`;
   }
+   const testHTML = `
+    <div style="max-width:1200px; margin:0 auto; padding:40px 20px; text-align:center">
+      <h1 style="color:#E85D04">🐾 PawFinder</h1>
+      <p>Bienvenido a PawFinder. ${allDogs.length} perros cargados correctamente.</p>
+      <button class="btn btn-primary" onclick="location.reload()" style="padding:10px 24px; background:#E85D04; color:white; border:none; border-radius:8px; cursor:pointer">
+        Recargar
+      </button>
+      <button class="btn btn-outline" onclick="showPage('lost')" style="padding:10px 24px; margin-left:10px; border:1px solid #ccc; border-radius:8px; cursor:pointer">
+        Ver Perros Perdidos
+      </button>
+    </div>
+  `;
   
+  // Insertar HTML de prueba
+  document.getElementById('page-home').innerHTML = testHTML;
+  console.log('✅ HTML de prueba insertado');
+}
   const homeHTML = `...`; // Tu HTML existente aquí (no cambio nada)
   
   document.getElementById('page-home').innerHTML = homeHTML;
