@@ -33,6 +33,8 @@ async function loadReportsFromBackend() {
         location_lat: report.location_lat,
         location_lon: report.location_lon,
         created_at: report.created_at,
+        physical: report.physical || '',     // 👈 Agregar
+        personality: report.personality || '', // 👈 Agregar
         photos: report.photos || []  // 👈 AGREGA ESTA LÍNEA
       }));
       
