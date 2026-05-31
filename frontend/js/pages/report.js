@@ -414,7 +414,10 @@ function addImagePreview(file, imageUrl = null) {
     reader.readAsDataURL(file);
     return;
   }
-  
+  // Después de agregar la primera imagen
+  if (selectedFiles.length === 1) {
+  setTimeout(() => autoSuggestBreedOnUpload(), 500);
+  }
   img.style.cssText = 'width:100px; height:100px; object-fit:cover; border-radius:12px; border:2px solid var(--primary)';
   wrapper.appendChild(img);
   
