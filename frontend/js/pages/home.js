@@ -155,22 +155,18 @@ async function renderHomeGrids() {
   
   // Generar HTML de las tarjetas MANUALMENTE
   let lostCardsHtml = '';
-  let lostClonesHtml = '';
+
   let foundCardsHtml = '';
-  let foundClonesHtml = '';
-  
   for (let i = 0; i < lostPerros.length; i++) {
-    lostCardsHtml += `<div class="carousel-card">${dogCardSimple(lostPerros[i])}</div>`;
-    lostClonesHtml += `<div class="carousel-card clone">${dogCardSimple(lostPerros[i])}</div>`;
-  }
-  
-  for (let i = 0; i < foundPerros.length; i++) {
-    foundCardsHtml += `<div class="carousel-card">${dogCardSimple(foundPerros[i])}</div>`;
-    foundClonesHtml += `<div class="carousel-card clone">${dogCardSimple(foundPerros[i])}</div>`;
-  }
-  
-  console.log('📢 lostCardsHtml generado:', lostCardsHtml.length, 'caracteres');
-  console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
+  lostCardsHtml += `<div class="carousel-card">${dogCardSimple(lostPerros[i])}</div>`;
+}
+
+for (let i = 0; i < foundPerros.length; i++) {
+  foundCardsHtml += `<div class="carousel-card">${dogCardSimple(foundPerros[i])}</div>`;
+}
+
+console.log('📢 lostCardsHtml generado:', lostCardsHtml.length, 'caracteres');
+console.log('📢 Número de tarjetas perdidas:', lostPerros.length);
   
   const homeHTML = `
     <!-- Hero Section -->
@@ -217,25 +213,24 @@ async function renderHomeGrids() {
     </div>
 
     <!-- Recently Lost - Carrusel Horizontal -->
-    <div class="section carousel-section">
-      <div class="section-header">
-        <div>
-          <div class="section-title">Perros Perdidos Recientemente</div>
-          <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
-      </div>
-      <div class="carousel-container">
-        <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
-        <div class="carousel-wrapper">
-          <div class="carousel-track" id="home-lost-track">
-            ${lostCardsHtml}
-            ${lostClonesHtml}
-          </div>
-        </div>
-        <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
+<div class="section carousel-section">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Perros Perdidos Recientemente</div>
+      <div class="section-sub">Ayuda a estos perros a encontrar su hogar</div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="showPage('lost')">Ver Todos →</button>
+  </div>
+  <div class="carousel-container">
+    <button class="carousel-arrow prev-lost" onclick="scrollCarousel('home-lost-track', -1)">‹</button>
+    <div class="carousel-wrapper">
+      <div class="carousel-track" id="home-lost-track">
+        ${lostCardsHtml}
       </div>
     </div>
+    <button class="carousel-arrow next-lost" onclick="scrollCarousel('home-lost-track', 1)">›</button>
+  </div>
+</div>
 
     <!-- Recently Found - Carrusel Horizontal -->
     <div class="section carousel-section">
@@ -251,7 +246,6 @@ async function renderHomeGrids() {
         <div class="carousel-wrapper">
           <div class="carousel-track" id="home-found-track">
             ${foundCardsHtml}
-            ${foundClonesHtml}
           </div>
         </div>
         <button class="carousel-arrow next-found" onclick="scrollCarousel('home-found-track', 1)">›</button>
