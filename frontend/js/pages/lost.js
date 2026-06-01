@@ -8,34 +8,38 @@ async function renderLostGrid() {
   const allDogs = window.ALL_DOGS || [];
   const lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
   
-  const foundHTML = `
-  <div class="filter-bar">
-    <input type="text" id="searchFound" placeholder="Buscar por ubicación, descripción…" onkeyup="filterFound()"/>
-    <button class="filter-tag active" onclick="filterFoundBy('all')">Todos</button>
-    <button class="filter-tag" onclick="filterFoundBy('week')">Esta Semana</button>
-    <button class="filter-tag" onclick="filterFoundBy('month')">Este Mes</button>
-    <button class="filter-tag" style="margin-left:auto;background:var(--gold);color:#fff;border-color:var(--gold)" onclick="showPage('report')">+ Reportar Perro Encontrado</button>
-  </div>
-  <div class="section">
-    <div class="section-header">
-      <div>
-        <div class="section-title">Perros Encontrados</div>
-        <div class="section-sub" id="found-count">${found.length} perros esperando ser reclamados</div>
+  const lostHTML = `
+    <div class="filter-bar">
+      <input type="text" id="searchLost" placeholder="🔍 Buscar por nombre, raza o ubicación..." onkeyup="filterLost()"/>
+      <div class="filter-tags-container">
+        <button class="filter-tag active" onclick="filterLostBy('all')">Todos</button>
+        <button class="filter-tag" onclick="filterLostBy('Pequeño')">Pequeño</button>
+        <button class="filter-tag" onclick="filterLostBy('Mediano')">Mediano</button>
+        <button class="filter-tag" onclick="filterLostBy('Grande')">Grande</button>
+        <button class="filter-tag" onclick="filterLostBy('reward')">💰 Con Recompensa</button>
       </div>
-      <a href="#" class="view-all" onclick="showPage('found'); return false;">Ver todos →</a>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="showPage('report')">+ Reportar Perro</button>
     </div>
-    <div class="dogs-grid" id="found-grid"></div>
-  </div>
-  <footer>
-    <div class="footer-inner">
-      <div class="footer-logo">
-        <div class="logo-icon" style="width:28px;height:28px;background:var(--primary);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem">🐾</div>
-        <span style="font-family:'DM Serif Display',serif">PawFinder</span>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Perros Perdidos</div>
+          <div class="section-sub" id="lost-count">${lost.length} perros reportados como perdidos</div>
+        </div>
+        <a href="#" class="view-all" onclick="showPage('lost'); return false;">Ver todos →</a>
       </div>
-      <div class="footer-copy">🐾 Hecho con amor para nuestros amigos peludos</div>
+      <div class="dogs-grid" id="lost-grid"></div>
     </div>
-  </footer>
-`;
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <div class="logo-icon" style="width:28px;height:28px;background:var(--primary);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem">🐾</div>
+          <span style="font-family:'DM Serif Display',serif">PawFinder</span>
+        </div>
+        <div class="footer-copy">🐾 Hecho con amor para nuestros amigos peludos</div>
+      </div>
+    </footer>
+  `;
   
   document.getElementById('page-lost').innerHTML = lostHTML;
   renderLostCards(lost);
@@ -58,7 +62,6 @@ function renderLostCards(dogs) {
 function filterLost() {
   const searchTerm = document.getElementById('searchLost')?.value.toLowerCase() || '';
   const allDogs = window.ALL_DOGS || [];
-  // ✅ Excluir perros reunidos también en la búsqueda
   const lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
   
   const filtered = lost.filter(dog => 
@@ -72,7 +75,6 @@ function filterLost() {
 
 function filterLostBy(criteria) {
   const allDogs = window.ALL_DOGS || [];
-  // ✅ Excluir perros reunidos
   let lost = allDogs.filter(d => d.type === 'lost' && d.status !== 'reunited');
   
   if (criteria === 'reward') {
