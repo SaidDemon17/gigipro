@@ -2,6 +2,7 @@
 let reportMap = null;
 let reportMarker = null;
 let selectedFiles = [];
+let analyzedPhotoUrls = []; // Guardar URLs de Cloudinary después de análisis
 let currentLocation = { lat: null, lon: null, address: '' };
 let cropper = null;
 let currentFileToCrop = null;
@@ -387,7 +388,10 @@ function applyCrop() {
     closeCropModal();
     showToast('✅ Imagen recortada y agregada', 'success');
     
-    if (selectedFiles.length === 1) setTimeout(() => autoSuggestBreedOnUpload(), 500);
+    // ✅ Solo una llamada, cuando es la primera imagen
+    if (selectedFiles.length === 1) {
+      setTimeout(() => autoSuggestBreedOnUpload(), 500);
+    }
   }, currentFileToCrop.type, 0.9);
 }
 
@@ -414,10 +418,7 @@ function addImagePreview(file, imageUrl = null) {
     reader.readAsDataURL(file);
     return;
   }
-  // Después de agregar la primera imagen
-  if (selectedFiles.length === 1) {
-  setTimeout(() => autoSuggestBreedOnUpload(), 500);
-  }
+  
   img.style.cssText = 'width:100px; height:100px; object-fit:cover; border-radius:12px; border:2px solid var(--primary)';
   wrapper.appendChild(img);
   
@@ -427,6 +428,8 @@ function addImagePreview(file, imageUrl = null) {
   removeBtn.onclick = () => {
     const index = selectedFiles.indexOf(file);
     if (index > -1) selectedFiles.splice(index, 1);
+    // También eliminar la URL analizada correspondiente
+    if (analyzedPhotoUrls[index]) analyzedPhotoUrls.splice(index, 1);
     wrapper.remove();
   };
   wrapper.appendChild(removeBtn);
@@ -441,7 +444,7 @@ async function analyzeDogImage(imageFile) {
   const photoUrl = URL.createObjectURL(imageFile);
   
   try {
-    // Primero subir la imagen a Cloudinary para obtener una URL pública
+    // Subir la imagen a Cloudinary para obtener una URL pública
     const formData = new FormData();
     formData.append('photos', imageFile);
     
@@ -460,6 +463,9 @@ async function analyzeDogImage(imageFile) {
     if (!uploadedUrl) {
       throw new Error('No se pudo obtener URL de la imagen');
     }
+    
+    // Guardar la URL para reutilizarla en submitReport
+    analyzedPhotoUrls[0] = uploadedUrl;
     
     // Enviar a Gemini para analizar
     const analyzeRes = await fetch(`${API_URL}/api/analyze-dog`, {
@@ -568,7 +574,13 @@ async function submitReport() {
   showToast('Enviando reporte...', '');
   
   let uploadedPhotos = [];
-  if (selectedFiles.length > 0) {
+  
+  // Si ya tenemos URLs analizadas, reutilizarlas
+  if (analyzedPhotoUrls.length > 0 && analyzedPhotoUrls[0]) {
+    uploadedPhotos = [...analyzedPhotoUrls];
+    console.log('📸 Reutilizando URLs de Cloudinary desde análisis:', uploadedPhotos);
+  } else if (selectedFiles.length > 0) {
+    // Si no hay URLs analizadas (ej: usuario subió múltiples fotos sin esperar análisis)
     const formData = new FormData();
     selectedFiles.forEach(file => formData.append('photos', file));
     
@@ -628,7 +640,6 @@ async function submitReport() {
     
     console.log('📡 Status de respuesta:', response.status);
     
-    // Leer la respuesta como texto primero para depurar
     const responseText = await response.text();
     console.log('📝 Respuesta del servidor:', responseText);
     
@@ -646,18 +657,18 @@ async function submitReport() {
       
       if (currentUser) {
         await updateUserPoints(currentUser.id, pointsToAdd, `Reportó un ${reportType === 'lost' ? 'perro perdido' : 'perro encontrado'}: ${dogName || 'Desconocido'}`);
-        await incrementUserReports(currentUser.id, reportType);
+        if (typeof incrementUserReports === 'function') {
+          await incrementUserReports(currentUser.id, reportType);
+        }
         showToast(`¡Reporte guardado! +${pointsToAdd} pts 🎉`, 'success');
       } else {
         showToast('¡Reporte guardado! 🎉', 'success');
       }
       
-      // Recargar la página para mostrar los nuevos datos
       setTimeout(() => {
         location.reload();
       }, 1500);
     } else {
-      // Si el servidor devuelve un error pero el reporte se guardó igual
       console.warn('Respuesta no exitosa pero el reporte pudo haberse guardado:', data);
       showToast('¡Reporte guardado! 🎉', 'success');
       setTimeout(() => {
@@ -668,7 +679,6 @@ async function submitReport() {
     console.error('Submit error:', error);
     showToast('Error al conectar con el servidor. Reporte guardado localmente.', '');
     
-    // Guardar localmente como fallback
     const reports = JSON.parse(localStorage.getItem('dogReports') || '[]');
     reports.push({ ...reportData, id: Date.now(), created_at: new Date().toISOString() });
     localStorage.setItem('dogReports', JSON.stringify(reports));
