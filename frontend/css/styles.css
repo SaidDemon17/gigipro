@@ -1180,6 +1180,330 @@ footer {
 .hero-search input {
   color: #212529 !important;
 }
+/* ============================================
+   MEJORAS PARA EL FORMULARIO DE REPORTE
+   ============================================ */
+
+/* 1. Fondo con degradado suave */
+.report-page {
+  background: linear-gradient(160deg, #fff8f3 0%, #f5f5f7 50%, #fff0e6 100%);
+  min-height: 100vh;
+}
+
+/* 2. Header con franja de color */
+.report-header {
+  background: linear-gradient(135deg, #E8540A, #FF8C00);
+  color: white;
+  padding: 40px 60px;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 40px;
+  margin-top: -40px;
+}
+
+.report-header h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2rem;
+  margin-bottom: 8px;
+  color: white;
+}
+
+.report-header p {
+  color: rgba(255,255,255,0.9);
+  font-size: 0.95rem;
+}
+
+/* 3. Stepper (numeración de pasos) */
+.form-stepper {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding: 0 20px;
+  position: relative;
+}
+
+.form-stepper::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--gray-200);
+  z-index: 0;
+}
+
+.step-item {
+  text-align: center;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.step-number {
+  width: 48px;
+  height: 48px;
+  background: var(--white);
+  border: 2px solid var(--gray-200);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--gray-600);
+  margin: 0 auto 8px;
+  transition: all 0.3s;
+}
+
+.step-item.active .step-number {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(232, 88, 4, 0.3);
+}
+
+.step-item.completed .step-number {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.step-item.active .step-label {
+  color: var(--primary);
+}
+
+/* 4. Cards con más personalidad */
+.report-page .form-card {
+  border: 1px solid #ffe0c8;
+  border-top: 3px solid #E8540A;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(232, 84, 10, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.report-page .form-card:hover {
+  box-shadow: 0 8px 24px rgba(232, 84, 10, 0.12);
+}
+
+/* 5. Zona de upload mejorada */
+.report-page .upload-area {
+  background: #fff8f3;
+  border: 2px dashed #E8540A;
+  border-radius: 16px;
+  transition: all 0.2s;
+}
+
+.report-page .upload-area:hover {
+  background: #fff0e6;
+  border-color: #c0440a;
+}
+
+.report-page .upload-area.drag-over {
+  background: #ffe8dc;
+  border-color: var(--primary);
+}
+
+/* 6. Labels más refinados */
+.report-page .form-group label {
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* 7. Inputs con foco naranja */
+.report-page .form-group input:focus,
+.report-page .form-group select:focus,
+.report-page .form-group textarea:focus {
+  border-color: #E8540A;
+  box-shadow: 0 0 0 3px rgba(232, 84, 10, 0.12);
+  outline: none;
+}
+
+/* 8. Layout de 2 columnas (formulario + sidebar) */
+.report-layout {
+  display: flex;
+  gap: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.report-form {
+  flex: 2;
+}
+
+.report-sidebar {
+  flex: 1;
+}
+
+/* Sidebar con tips */
+.tips-card {
+  background: linear-gradient(135deg, #FFF8F3 0%, #FFF0E6 100%);
+  border-radius: 20px;
+  padding: 24px;
+  position: sticky;
+  top: 100px;
+  border: 1px solid #FFE0C8;
+}
+
+.tips-card h3 {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tip-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: white;
+  border-radius: 12px;
+  transition: transform 0.2s;
+}
+
+.tip-item:hover {
+  transform: translateX(4px);
+}
+
+.tip-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.tip-content h4 {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: var(--gray-900);
+}
+
+.tip-content p {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  margin: 0;
+}
+
+/* 9. Toggle mejorado */
+.report-page .type-toggle {
+  background: #f5f5f5;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.report-page .type-btn {
+  background: transparent;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.report-page .type-btn:not(.active) {
+  background: #f5f5f5;
+  color: var(--gray-600);
+}
+
+.report-page .type-btn:not(.active):hover {
+  background: #e9ecef;
+}
+
+.report-page .type-btn.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(232, 88, 4, 0.3);
+}
+
+/* 10. Progress bar al fondo */
+.form-progress {
+  margin-top: 32px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #ffe0c8;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+  flex: 1;
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 45px;
+}
+
+.progress-message {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  margin: 0;
+}
+
+/* 11. Mejoras responsive */
+@media (max-width: 992px) {
+  .report-layout {
+    flex-direction: column;
+  }
+  
+  .report-sidebar {
+    order: -1;
+  }
+  
+  .tips-card {
+    position: static;
+  }
+  
+  .report-header {
+    padding: 30px 20px;
+  }
+  
+  .form-stepper {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  
+  .form-stepper::before {
+    display: none;
+  }
+  
+  .step-item {
+    flex: auto;
+    min-width: 80px;
+  }
+}
 /* ── ANIMACIONES ── */
 .ai-loading{position:fixed;bottom:20px;right:20px;background:var(--primary);color:white;padding:8px 16px;border-radius:20px;font-size:0.8rem;z-index:1000;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
