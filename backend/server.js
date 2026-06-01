@@ -172,7 +172,7 @@ app.post('/api/analyze-dog', async (req, res) => {
     
     // Usar la segunda API key (GEMINI_API_KEY2)
     const genAIAnalyze = new GoogleGenerativeAI(process.env.GEMINI_API_KEY2 || process.env.GEMINI_API_KEY);
-    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
+    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const prompt = `Analiza esta imagen de un perro y devuelve SOLO un JSON con este formato exacto:
 {
