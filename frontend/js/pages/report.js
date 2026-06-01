@@ -9,7 +9,24 @@ let currentFileToCrop = null;
 
 let currentStep = 1;
 let formData = {};
-
+function updateFormFields() {
+  const isLost = document.getElementById('type-lost')?.classList.contains('active');
+  const dogNameGroup = document.getElementById('dog-name-group');
+  const rewardSection = document.getElementById('reward-section');
+  const extraDetailsSection = document.getElementById('extra-details-section');
+  
+  if (!isLost) {
+    // Modo FOUND - ocultar campos innecesarios
+    if (dogNameGroup) dogNameGroup.style.display = 'none';
+    if (rewardSection) rewardSection.style.display = 'none';
+    if (extraDetailsSection) extraDetailsSection.style.display = 'none';
+  } else {
+    // Modo LOST - mostrar todos los campos
+    if (dogNameGroup) dogNameGroup.style.display = 'block';
+    if (rewardSection) rewardSection.style.display = 'block';
+    if (extraDetailsSection) extraDetailsSection.style.display = 'block';
+  }
+}
 function renderReportPage() {
   if (!isLoggedIn()) {
     showToast('Por favor inicia sesión para reportar un perro', '');
@@ -727,12 +744,14 @@ function setType(t) {
   const lostBtn = document.getElementById('type-lost');
   const foundBtn = document.getElementById('type-found');
   
-  if (t === 'lost') {
-    lostBtn.classList.add('active');
-    foundBtn.classList.remove('active');
-  } else {
-    lostBtn.classList.remove('active');
-    foundBtn.classList.add('active');
+  if (lostBtn && foundBtn) {
+    if (t === 'lost') {
+      lostBtn.classList.add('active');
+      foundBtn.classList.remove('active');
+    } else {
+      lostBtn.classList.remove('active');
+      foundBtn.classList.add('active');
+    }
   }
   updateFormFields();
 }
