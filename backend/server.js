@@ -151,6 +151,9 @@ async function initDB() {
 // ============================================
 // ENDPOINT PARA ANALIZAR IMAGEN CON GEMINI (raza + color)
 // ============================================
+// ============================================
+// ENDPOINT PARA ANALIZAR IMAGEN CON GEMINI (raza + color)
+// ============================================
 
 app.post('/api/analyze-dog', async (req, res) => {
   try {
@@ -160,20 +163,21 @@ app.post('/api/analyze-dog', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Se requiere una URL de imagen' });
     }
     
-    console.log('🔍 Analizando imagen con Gemini 2.5...');
+    console.log('🔍 Analizando imagen con Gemini (raza/color)...');
     
     // Obtener la imagen
     const response = await fetch(imageUrl);
     const buffer = await response.arrayBuffer();
     const base64Image = Buffer.from(buffer).toString('base64');
     
-    // Configurar Gemini 2.5
+    // Usar la segunda API key (GEMINI_API_KEY2)
+    const genAIAnalyze = new GoogleGenerativeAI(process.env.GEMINI_API_KEY2 || process.env.GEMINI_API_KEY);
     const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-2.5-flash-preview-04-17' });
     
     const prompt = `Analiza esta imagen de un perro y devuelve SOLO un JSON con este formato exacto:
 {
-  "breed": "raza del perro (ej: Golden Retriever, Labrador, etc.)",
-  "color": "color principal del perro (ej: Dorado, Negro, Blanco con manchas marrones)"
+  "breed": "raza del perro",
+  "color": "color principal del perro"
 }
 
 Si no puedes identificar la raza, escribe "Desconocida". Si no puedes identificar el color, escribe "Desconocido".
