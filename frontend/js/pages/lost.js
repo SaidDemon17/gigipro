@@ -54,9 +54,16 @@ function renderLostCards(dogs) {
     return;
   }
   
-  container.innerHTML = dogs.map(dog => dogCard(dog)).join('');
+  // Ordenar: los reunidos al final
+  const sortedDogs = [...dogs].sort((a, b) => {
+    if (a.status === 'reunited' && b.status !== 'reunited') return 1;
+    if (a.status !== 'reunited' && b.status === 'reunited') return -1;
+    return 0;
+  });
+  
+  container.innerHTML = sortedDogs.map(dog => dogCard(dog)).join('');
   const countEl = document.getElementById('lost-count');
-  if (countEl) countEl.textContent = `${dogs.length} perros reportados como perdidos`;
+  if (countEl) countEl.textContent = `${dogs.filter(d => d.status !== 'reunited').length} perros reportados como perdidos`;
 }
 
 function filterLost() {
