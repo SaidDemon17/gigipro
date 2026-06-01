@@ -13,7 +13,7 @@ function showPage(id){
     if (isLoggedIn()) {
       renderReportPage();
     } else {
-      showToast('Please sign in to report a dog', '');
+      showToast('Por favor inicia sesión para reportar un perro', '');
       openAuthModal();
     }
   }
@@ -22,7 +22,7 @@ function showPage(id){
       renderAccountPage();
     } else {
       console.error('renderAccountPage no está definida');
-      document.getElementById('page-account').innerHTML = '<div class="account-page"><div class="account-not-logged"><h2>Error</h2><p>Account page not loaded correctly. Please refresh the page.</p></div></div>';
+      document.getElementById('page-account').innerHTML = '<div class="account-page"><div class="account-not-logged"><h2>Error</h2><p>La página de cuenta no se cargó correctamente. Por favor recarga la página.</p></div></div>';
     }
   }
 }
