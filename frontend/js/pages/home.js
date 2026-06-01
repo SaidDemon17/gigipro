@@ -254,10 +254,11 @@ async function renderHomeGrids() {
   const recentLost = [...allLost].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentFound = [...allFound].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   
-  const recentReunited = [...allDogs]
-    .filter(d => d.status === 'reunited')
-    .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-    .slice(0, 5);
+  // Ordenar reunidos (más recientes primero)
+const recentReunited = [...allDogs]
+  .filter(d => d.status === 'reunited')
+  .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
+  .slice(0, 5);
   
   let top3 = [];
   if (typeof getRanking === 'function') {
