@@ -190,13 +190,9 @@ function isBreedMatch(dog1, dog2) {
   const breed1 = dog1.breed.toLowerCase().trim();
   const breed2 = dog2.breed.toLowerCase().trim();
   
-  // Exactamente igual
   if (breed1 === breed2) return true;
-  
-  // Una contiene a la otra
   if (breed1.includes(breed2) || breed2.includes(breed1)) return true;
   
-  // Palabras clave comunes
   const keywords1 = breed1.split(' ');
   const keywords2 = breed2.split(' ');
   
@@ -284,7 +280,7 @@ function calculateMatchScore(dog1, dog2) {
   return score;
 }
 
-// Comparar con Gemini
+// Comparar con Gemini (usando gemini-2.5-flash)
 async function compareWithGemini(imageUrl1, imageUrl2) {
   try {
     const response1 = await fetch(imageUrl1);
@@ -335,7 +331,7 @@ Explicación: [tu análisis detallado]`;
   }
 }
 
-// Comparar un perro encontrado con todos los perdidos (1 sola vez)
+// Comparar un perro encontrado con TODOS los perros perdidos
 async function compareFoundWithAllLost(foundDogId) {
   console.log(`🔄 Iniciando comparación para perro encontrado ID: ${foundDogId}`);
   
@@ -358,9 +354,6 @@ async function compareFoundWithAllLost(foundDogId) {
         continue;
       }
       
-      // ============================================
-      // FILTRO 1: Verificar raza (eliminatorio)
-      // ============================================
       const breedMatches = isBreedMatch(lostDog, foundDog);
       
       if (!breedMatches) {
@@ -370,15 +363,9 @@ async function compareFoundWithAllLost(foundDogId) {
       
       console.log(`✅ Raza coincide: ${lostDog.breed} vs ${foundDog.breed}`);
       
-      // ============================================
-      // FILTRO 2: Calcular puntaje (Tamaño 30% + Ubicación 40% + Color 30%)
-      // ============================================
       const matchScore = calculateMatchScore(lostDog, foundDog);
       console.log(`📊 Puntaje filtro: ${matchScore}%`);
       
-      // ============================================
-      // Si pasa el 60%, comparar con Gemini
-      // ============================================
       if (matchScore >= 20) {
         console.log(`🔍 Pasó filtro (${matchScore}%) - Comparando con Gemini...`);
         
@@ -391,7 +378,6 @@ async function compareFoundWithAllLost(foundDogId) {
           explanation = geminiResult.explanation;
         }
         
-        // El puntaje final es SOLO el de Gemini
         const finalScore = geminiScore;
         
         if (finalScore >= 50) {
@@ -405,14 +391,85 @@ async function compareFoundWithAllLost(foundDogId) {
           console.log(`⚠️ Gemini dio ${finalScore}% - Por debajo del umbral, no se guarda`);
         }
       } else {
-        console.log(`❌ No pasó filtro (${matchScore}% < 60%) - Descartado`);
+        console.log(`❌ No pasó filtro (${matchScore}% < 40%) - Descartado`);
       }
     }
     
-    console.log(`🏁 Comparación completada`);
+    console.log(`🏁 Comparación completada para perro encontrado ID: ${foundDogId}`);
     
   } catch (error) {
     console.error('Error en compareFoundWithAllLost:', error);
+  }
+}
+
+// Comparar un perro perdido con TODOS los perros encontrados existentes (NUEVA FUNCIÓN)
+async function compareLostWithAllFound(lostDogId) {
+  console.log(`🔄 Iniciando comparación para perro perdido ID: ${lostDogId}`);
+  
+  try {
+    const lostResult = await sql`SELECT * FROM dog_reports WHERE id = ${lostDogId}`;
+    if (lostResult.length === 0) return;
+    const lostDog = lostResult[0];
+    
+    const foundDogs = await sql`SELECT * FROM dog_reports WHERE type = 'found' AND status = 'active'`;
+    console.log(`📊 Comparando con ${foundDogs.length} perros encontrados existentes`);
+    
+    for (const foundDog of foundDogs) {
+      const existingMatch = await sql`
+        SELECT id FROM ai_matches 
+        WHERE lost_dog_id = ${lostDogId} AND found_dog_id = ${foundDog.id}
+      `;
+      
+      if (existingMatch.length > 0) {
+        console.log(`⏭️ Ya existe coincidencia para found:${foundDog.id}`);
+        continue;
+      }
+      
+      const breedMatches = isBreedMatch(lostDog, foundDog);
+      
+      if (!breedMatches) {
+        console.log(`❌ Raza no coincide: ${lostDog.breed || '?'} vs ${foundDog.breed || '?'} - Descartado`);
+        continue;
+      }
+      
+      console.log(`✅ Raza coincide: ${lostDog.breed} vs ${foundDog.breed}`);
+      
+      const matchScore = calculateMatchScore(lostDog, foundDog);
+      console.log(`📊 Puntaje filtro: ${matchScore}%`);
+      
+      if (matchScore >= 40) {
+        console.log(`🔍 Pasó filtro (${matchScore}%) - Comparando con Gemini...`);
+        
+        let geminiScore = 0;
+        let explanation = '';
+        
+        if (lostDog.photos?.length > 0 && foundDog.photos?.length > 0) {
+          const geminiResult = await compareWithGemini(lostDog.photos[0], foundDog.photos[0]);
+          geminiScore = geminiResult.similarity;
+          explanation = geminiResult.explanation;
+        }
+        
+        const finalScore = geminiScore;
+        
+        if (finalScore >= 50) {
+          await sql`
+            INSERT INTO ai_matches (lost_dog_id, found_dog_id, filter_score, gemini_score, final_score, explanation)
+            VALUES (${lostDogId}, ${foundDog.id}, ${matchScore}, ${geminiScore}, ${finalScore}, ${explanation})
+            ON CONFLICT (lost_dog_id, found_dog_id) DO NOTHING
+          `;
+          console.log(`✅ Coincidencia guardada: ${finalScore}% (solo Gemini)`);
+        } else {
+          console.log(`⚠️ Gemini dio ${finalScore}% - Por debajo del umbral, no se guarda`);
+        }
+      } else {
+        console.log(`❌ No pasó filtro (${matchScore}% < 40%) - Descartado`);
+      }
+    }
+    
+    console.log(`🏁 Comparación completada para perro perdido ID: ${lostDogId}`);
+    
+  } catch (error) {
+    console.error('Error en compareLostWithAllFound:', error);
   }
 }
 
@@ -769,9 +826,17 @@ app.post('/api/reports', async (req, res) => {
     
     console.log('✅ Reporte guardado ID:', result[0].id);
     
+    // Si es un perro ENCONTRADO, comparar con TODOS los perdidos existentes
     if (data.type === 'found') {
       compareFoundWithAllLost(result[0].id).catch(err => {
-        console.error('Error en comparación automática:', err);
+        console.error('Error en comparación automática (found):', err);
+      });
+    }
+    
+    // Si es un perro PERDIDO, comparar con TODOS los encontrados existentes
+    if (data.type === 'lost') {
+      compareLostWithAllFound(result[0].id).catch(err => {
+        console.error('Error en comparación automática (lost):', err);
       });
     }
     
