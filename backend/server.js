@@ -379,7 +379,7 @@ async function compareFoundWithAllLost(foundDogId) {
       // ============================================
       // Si pasa el 60%, comparar con Gemini
       // ============================================
-      if (matchScore >= 40) {
+      if (matchScore >= 20) {
         console.log(`🔍 Pasó filtro (${matchScore}%) - Comparando con Gemini...`);
         
         let geminiScore = 0;
