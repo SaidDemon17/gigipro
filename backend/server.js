@@ -295,35 +295,14 @@ async function compareWithGemini(imageUrl1, imageUrl2) {
     
     const model = genAICompare.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
-    const prompt = `Eres un experto forense en identificación de perros. Compara estas DOS fotos de perros y determina la probabilidad de que sean el MISMO perro.
+    const prompt = `Compara estas dos fotos de perros. Determina si son el MISMO perro.
 
-📌 CRITERIOS DE EVALUACIÓN (solo basado en lo que VES en las fotos):
+Responde SOLO en este formato exacto:
 
-1. COLOR Y PATRONES (40%):
-   - Color principal del cuerpo
-   - Manchas, marcas o parches
-   - Color de patas, pecho, hocico y cola
+Porcentaje: [0-100]
+Explicación: [máximo 120 caracteres, solo lo más importante]
 
-2. CARACTERÍSTICAS FACIALES (30%):
-   - Forma y posición de las orejas (paradas, caídas, largas, cortas)
-   - Forma del hocico (largo, corto, ancho)
-   - Ojos (color, forma, tamaño relativo)
-
-3. ESTRUCTURA CORPORAL (20%):
-   - Proporción cuerpo-patas
-   - Forma de la espalda y pecho
-   - Longitud de la cola
-
-4. SEÑAS PARTICULARES (10%):
-   - Collar, ropa o accesorios visibles
-   - Cicatrices o marcas únicas
-
-⚠️ IMPORTANTE: Sé HONESTO. Si los perros son claramente diferentes, da un porcentaje BAJO (0-30%) y explica POR QUÉ son diferentes.
-
-Responde SOLO en este formato EXACTO:
-
-Porcentaje: [número del 0 al 100]
-Explicación: [análisis específico mencionando: color, orejas, hocico, y las PRINCIPALES DIFERENCIAS que encuentres]`;
+Ejemplo: "Mismo color dorado y orejas. Mancha blanca en pecho coincide."`;
 
     const result = await model.generateContent([
       { text: prompt },
