@@ -248,7 +248,7 @@ async function compareWithGemini(imageUrl1, imageUrl2) {
     const base64Image1 = Buffer.from(buffer1).toString('base64');
     const base64Image2 = Buffer.from(buffer2).toString('base64');
     
-    const model = genAICompare.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAICompare.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
 
@@ -366,8 +366,8 @@ app.post('/api/analyze-dog', async (req, res) => {
     const buffer = await response.arrayBuffer();
     const base64Image = Buffer.from(buffer).toString('base64');
     
-    // ✅ CORREGIDO: usar gemini-1.5-flash
-    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // ✅ CORREGIDO: usar gemini-2.5-flash
+    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const prompt = `Analiza esta imagen de un perro y devuelve SOLO un JSON con este formato exacto:
 {"breed": "raza del perro", "color": "color principal del perro"}
@@ -798,7 +798,7 @@ app.post('/api/compare-images', async (req, res) => {
     const base64Image2 = Buffer.from(buffer2).toString('base64');
     
     // ✅ CORREGIDO: usar genAICompare
-    const model = genAICompare.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAICompare.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
     const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
 
