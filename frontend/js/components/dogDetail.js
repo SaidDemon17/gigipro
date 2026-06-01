@@ -96,7 +96,7 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
     confidenceDiv.innerHTML = '🎯 No hay coincidencias aún';
     matchesDiv.innerHTML = `
       <div class="empty-state">
-        <p>Cuando alguien reporte un perro encontrado que coincida con el tuyo, aparecerá aquí automáticamente.</p>
+        <p>Cuando alguien reporte un perro deambulante que coincida con el tuyo, aparecerá aquí automáticamente.</p>
       </div>
     `;
     resultsDiv.style.display = 'block';
@@ -142,8 +142,8 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
 }
 
 async function generateAIReport(dogId) {
-  console.log('⚠️ generateAIReport está obsoleto. Las coincidencias se generan automáticamente al reportar perros encontrados.');
-  showToast('Las coincidencias se generan automáticamente cuando se reportan perros encontrados.', '');
+  console.log('⚠️ generateAIReport está obsoleto. Las coincidencias se generan automáticamente al reportar perros deambulantes.');
+  showToast('Las coincidencias se generan automáticamente cuando se reportan perros deambulante.', '');
   await displaySavedMatches(dogId, true, 'lost');
 }
 
@@ -222,9 +222,9 @@ async function showDetail(id) {
       </button>
       <div class="detail-header">
         <div class="detail-badge ${dog.status === 'reunited' ? 'reunited' : dog.type}">
-          ${dog.status === 'reunited' ? '✅ REUNIDO' : (dog.type === 'lost' ? '⚠️ PERRO PERDIDO' : '📍 PERRO ENCONTRADO')}
+          ${dog.status === 'reunited' ? '✅ REUNIDO' : (dog.type === 'lost' ? '⚠️ PERRO PERDIDO' : '📍 PERRO DEAMBULANTE')}
         </div>
-        <div class="detail-title">${dog.type === 'lost' ? `¿Has Visto a ${dog.name || 'este perro'}?` : `Perro Encontrado en ${(dog.location || dog.location_address || '').split(',')[0]}`}</div>
+        <div class="detail-title">${dog.type === 'lost' ? `¿Has Visto a ${dog.name || 'este perro'}?` : `Perro Deambulante en ${(dog.location || dog.location_address || '').split(',')[0]}`}</div>
         <div class="detail-sub">${dog.breed || 'Desconocida'} · ${dog.color || 'Desconocido'} · ${dog.size || 'Desconocido'}</div>
       </div>
       <div class="detail-grid">
