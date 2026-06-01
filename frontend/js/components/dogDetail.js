@@ -7,7 +7,7 @@ function getTimeAgo(date) {
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+  const diffDays = Math.floor(diffMs / 86400000);dis
   
   if (diffMins < 1) return 'hace un momento';
   if (diffMins < 60) return `hace ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`;
@@ -76,27 +76,67 @@ async function loadSavedMatches(dogId) {
 // MOSTRAR COINCIDENCIAS GUARDADAS
 // ============================================
 
-async function displaySavedMatches(dogId, isOwner) {
+// Mostrar coincidencias guardadas (solo para el dueño)
+async function displaySavedMatches(dogId, isOwner, dogType) {
   const resultsDiv = document.getElementById('ai-results');
   const confidenceDiv = document.getElementById('ai-confidence');
   const matchesDiv = document.getElementById('ai-matches');
-  const generateSection = document.getElementById('ai-generate-section');
   
   if (!resultsDiv) return;
   
-  // Cargar coincidencias guardadas desde la base de datos
+  // Si NO es el dueño y es un perro PERDIDO, mostrar mensaje de restricción
+  if (!isOwner && dogType === 'lost') {
+    confidenceDiv.className = 'confidence-badge low';
+    confidenceDiv.innerHTML = '🔒 Contenido privado';
+    matchesDiv.innerHTML = `
+      <div class="ai-placeholder">
+        <div class="ai-placeholder-icon">🔒</div>
+        <h4>🤖 Coincidencias con IA</h4>
+        <p>Esta información es privada y solo visible para el dueño del perro perdido.</p>
+        <div class="ai-placeholder-features">
+          <span>✨ Solo el dueño puede ver las coincidencias</span>
+          <span>📊 Análisis con Gemini</span>
+          <span>💬 Si reconoces este perro, deja un comentario</span>
+        </div>
+        <small>💡 El dueño recibirá notificaciones si hay coincidencias con perros encontrados.</small>
+      </div>
+    `;
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  // Si es un perro ENCONTRADO, mostrar mensaje diferente
+  if (dogType === 'found') {
+    confidenceDiv.className = 'confidence-badge low';
+    confidenceDiv.innerHTML = '📋 Reporte de Encontrado';
+    matchesDiv.innerHTML = `
+      <div class="ai-placeholder">
+        <div class="ai-placeholder-icon">📍</div>
+        <h4>Este es un perro ENCONTRADO</h4>
+        <p>Las coincidencias con IA se generan automáticamente cuando el dueño de un perro perdido activa la comparación.</p>
+        <div class="ai-placeholder-features">
+          <span>🐕 Si es tu perro, contacta al reportante</span>
+          <span>📞 Usa el botón de contacto</span>
+        </div>
+      </div>
+    `;
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  // Si es el dueño, cargar y mostrar coincidencias
   const matches = await loadSavedMatches(dogId);
   
   if (!matches || matches.length === 0) {
-    if (isOwner) {
-      confidenceDiv.className = 'confidence-badge low';
-      confidenceDiv.innerHTML = '🎯 No hay coincidencias guardadas aún';
-      matchesDiv.innerHTML = '<div class="empty-state"><p>Cuando alguien reporte un perro encontrado que coincida con este, aparecerá aquí automáticamente.</p><p style="margin-top:8px; font-size:0.8rem">✨ La comparación se realiza una sola vez al momento de reportar el perro encontrado.</p></div>';
-    } else {
-      matchesDiv.innerHTML = '<div class="empty-state"><p>El dueño de este perro podrá ver coincidencias generadas por IA cuando se reporten perros encontrados similares.</p></div>';
-    }
+    confidenceDiv.className = 'confidence-badge low';
+    confidenceDiv.innerHTML = '🎯 No hay coincidencias aún';
+    matchesDiv.innerHTML = `
+      <div class="empty-state">
+        <p>Cuando alguien reporte un perro encontrado que coincida con el tuyo, aparecerá aquí automáticamente.</p>
+        <p style="margin-top:8px; font-size:0.8rem">✨ La comparación se realiza una sola vez al reportar el perro encontrado.</p>
+      </div>
+    `;
     resultsDiv.style.display = 'block';
-    if (generateSection) generateSection.style.display = 'none';
     return;
   }
   
@@ -131,9 +171,6 @@ async function displaySavedMatches(dogId, isOwner) {
   
   matchesDiv.innerHTML = matchesHtml;
   resultsDiv.style.display = 'block';
-  
-  // Ocultar el botón de generar si existe (ya no es necesario)
-  if (generateSection) generateSection.style.display = 'none';
 }
 
 // ============================================
@@ -323,7 +360,7 @@ async function showDetail(id) {
   
   // Cargar y mostrar coincidencias guardadas después de renderizar
   setTimeout(() => {
-    displaySavedMatches(dog.id, isOwner);
+    displaySavedMatches(dog.id, isOwne0r,dog.type);
   }, 100);
 }
 
