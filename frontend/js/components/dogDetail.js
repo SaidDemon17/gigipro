@@ -7,7 +7,7 @@ function getTimeAgo(date) {
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);dis
+  const diffDays = Math.floor(diffMs / 86400000);
   
   if (diffMins < 1) return 'hace un momento';
   if (diffMins < 60) return `hace ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`;
@@ -73,18 +73,16 @@ async function loadSavedMatches(dogId) {
 }
 
 // ============================================
-// MOSTRAR COINCIDENCIAS GUARDADAS
+// MOSTRAR COINCIDENCIAS GUARDADAS (SOLO PARA DUEÑOS DE PERROS PERDIDOS)
 // ============================================
 
-// Mostrar coincidencias guardadas (solo para el dueño)
-// Mostrar coincidencias guardadas (todas, incluso las bajas)
-// Mostrar coincidencias guardadas (solo para dueños)
 async function displaySavedMatches(dogId, isOwner, dogType) {
   const resultsDiv = document.getElementById('ai-results');
   if (!resultsDiv) return;
   
-  // Si no es dueño o no es perro perdido, salir sin hacer nada
+  // Solo continuar si es dueño Y es perro perdido
   if (!isOwner || dogType !== 'lost') {
+    if (resultsDiv) resultsDiv.style.display = 'none';
     return;
   }
   
@@ -143,16 +141,10 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
   resultsDiv.style.display = 'block';
 }
 
-// ============================================
-// FUNCIÓN ANTIGUA (ya no se usa, pero se mantiene por compatibilidad)
-// ============================================
-
 async function generateAIReport(dogId) {
-  // Esta función ya no es necesaria porque las coincidencias se guardan automáticamente
-  // Pero la mantenemos para no romper código existente
   console.log('⚠️ generateAIReport está obsoleto. Las coincidencias se generan automáticamente al reportar perros encontrados.');
   showToast('Las coincidencias se generan automáticamente cuando se reportan perros encontrados.', '');
-  await displaySavedMatches(dogId, true);
+  await displaySavedMatches(dogId, true, 'lost');
 }
 
 let currentDogId = null;
@@ -262,25 +254,11 @@ async function showDetail(id) {
             <button class="contact-btn" onclick="window.location.href='tel:${dog.contact || dog.contact_phone || ''}'">📞 ${dog.contact || dog.contact_phone || 'N/A'}</button>
             <button class="contact-btn" onclick="window.location.href='mailto:${dog.email || dog.contact_email || ''}'">✉️ ${dog.email || dog.contact_email || 'N/A'}</button>
             
-            // SECCIÓN DE IA - SOLO VISIBLE PARA EL DUEÑO
-            ${isOwner && dog.type === 'lost' && dog.status !== 'reunited' ? `
-              <div class="ai-section">
-                <div class="ai-header">
-                  <div class="ai-icon">🤖</div>
-                  <div>
-                    <div style="font-weight:700">Coincidencias con IA</div>
-                    <div style="font-size:.82rem;color:var(--gray-600)">Coincidencias guardadas con perros encontrados</div>
-                  </div>
-                </div>
-    
-    <div id="ai-results" style="display:none">
-      <div class="confidence-badge" id="ai-confidence"></div>
-      <div id="ai-matches"></div>
-    </div>
-    
-    <div class="ai-disclaimer">⚠️ Las coincidencias se generan automáticamente al reportar un perro encontrado y se guardan de forma permanente.</div>
-  </div>
-` : ''}
+            ${isOwner && dog.status !== 'reunited' && dog.type === 'lost' ? `
+              <button class="contact-btn" style="background: #2E7D32; margin-top:8px" onclick="markAsReunited(${dog.id})">
+                🎉 Marcar como Reunido
+              </button>
+            ` : ''}
             
             ${dog.status === 'reunited' ? `
               <div style="background: #2E7D32; padding:10px; border-radius:8px; text-align:center; margin-top:8px">
@@ -310,23 +288,25 @@ async function showDetail(id) {
         </div>
       </div>
       
-      <!-- SECCIÓN DE IA - COINCIDENCIAS GUARDADAS -->
-      <div class="ai-section">
-        <div class="ai-header">
-          <div class="ai-icon">🤖</div>
-          <div>
-            <div style="font-weight:700">Coincidencias con IA</div>
-            <div style="font-size:.82rem;color:var(--gray-600)">Coincidencias guardadas con perros encontrados</div>
+      <!-- SECCIÓN DE IA - SOLO VISIBLE PARA EL DUEÑO DEL PERRO PERDIDO -->
+      ${isOwner && dog.type === 'lost' && dog.status !== 'reunited' ? `
+        <div class="ai-section">
+          <div class="ai-header">
+            <div class="ai-icon">🤖</div>
+            <div>
+              <div style="font-weight:700">Coincidencias con IA</div>
+              <div style="font-size:.82rem;color:var(--gray-600)">Coincidencias guardadas con perros encontrados</div>
+            </div>
           </div>
+          
+          <div id="ai-results" style="display:none">
+            <div class="confidence-badge" id="ai-confidence"></div>
+            <div id="ai-matches"></div>
+          </div>
+          
+          <div class="ai-disclaimer">⚠️ Las coincidencias se generan automáticamente al reportar un perro encontrado y se guardan de forma permanente.</div>
         </div>
-        
-        <div id="ai-results" style="display:none">
-          <div class="confidence-badge" id="ai-confidence"></div>
-          <div id="ai-matches"></div>
-        </div>
-        
-        <div class="ai-disclaimer">⚠️ Las coincidencias se generan automáticamente al reportar un perro encontrado y se guardan de forma permanente.</div>
-      </div>
+      ` : ''}
       
       <div class="comments-section">
         <h3>💬 Comentarios de la Comunidad</h3>
@@ -344,7 +324,7 @@ async function showDetail(id) {
   
   // Cargar y mostrar coincidencias guardadas después de renderizar
   setTimeout(() => {
-    displaySavedMatches(dog.id, isOwner,dog.type);
+    displaySavedMatches(dog.id, isOwner, dog.type);
   }, 100);
 }
 
