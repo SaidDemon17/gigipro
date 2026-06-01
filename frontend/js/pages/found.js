@@ -50,10 +50,18 @@ function renderFoundCards(dogs) {
     return;
   }
   
-  container.innerHTML = dogs.map(dog => dogCard(dog)).join('');
+  // Ordenar: los reunidos al final
+  const sortedDogs = [...dogs].sort((a, b) => {
+    if (a.status === 'reunited' && b.status !== 'reunited') return 1;
+    if (a.status !== 'reunited' && b.status === 'reunited') return -1;
+    return 0;
+  });
+  
+  container.innerHTML = sortedDogs.map(dog => dogCard(dog)).join('');
   const countEl = document.getElementById('found-count');
-  const countText = dogs.length === 1 ? 'perro deambulante' : 'perros deambulantes';
-  if (countEl) countEl.textContent = `${dogs.length} ${countText} esperando ser ayudados`;
+  const activeCount = dogs.filter(d => d.status !== 'reunited').length;
+  const countText = activeCount === 1 ? 'perro deambulante' : 'perros deambulantes';
+  if (countEl) countEl.textContent = `${activeCount} ${countText} esperando ser ayudados`;
 }
 
 function filterFound() {
