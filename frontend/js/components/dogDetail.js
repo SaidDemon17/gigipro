@@ -384,6 +384,7 @@ async function markAsReunited(dogId) {
     if (data.success) {
       showToast('🎉 ¡Perro marcado como reunido! +100 puntos', 'success');
       await window.loadReportsFromBackend();
+      // Recargar la página para mostrar los cambios
       setTimeout(() => {
         location.reload();
       }, 1500);
