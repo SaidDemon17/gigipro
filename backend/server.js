@@ -281,6 +281,7 @@ function calculateMatchScore(dog1, dog2) {
 }
 
 // Comparar con Gemini (usando gemini-2.5-flash)
+// Comparar con Gemini (siempre devuelve resultado con explicación)
 async function compareWithGemini(imageUrl1, imageUrl2) {
   try {
     const response1 = await fetch(imageUrl1);
@@ -298,39 +299,31 @@ async function compareWithGemini(imageUrl1, imageUrl2) {
 
 📌 CRITERIOS DE EVALUACIÓN (solo basado en lo que VES en las fotos):
 
-1. COLOR Y PATRONES (40% de importancia):
+1. COLOR Y PATRONES (40%):
    - Color principal del cuerpo
    - Manchas, marcas o parches
    - Color de patas, pecho, hocico y cola
 
-2. CARACTERÍSTICAS FACIALES (30% de importancia):
+2. CARACTERÍSTICAS FACIALES (30%):
    - Forma y posición de las orejas (paradas, caídas, largas, cortas)
    - Forma del hocico (largo, corto, ancho)
    - Ojos (color, forma, tamaño relativo)
 
-3. ESTRUCTURA CORPORAL (20% de importancia):
+3. ESTRUCTURA CORPORAL (20%):
    - Proporción cuerpo-patas
    - Forma de la espalda y pecho
    - Longitud de la cola
 
-4. SEÑAS PARTICULARES (10% de importancia):
+4. SEÑAS PARTICULARES (10%):
    - Collar, ropa o accesorios visibles
    - Cicatrices o marcas únicas
-   - Expresión o postura característica
 
-⚠️ IMPORTANTE:
-- Si los COLORES son DIFERENTES → puntaje máximo 30%
-- Si las OREJAS son DIFERENTES (una caída vs una parada) → puntaje máximo 40%
-- Si el HOCICO es visiblemente DIFERENTE (largo vs chato) → puntaje máximo 50%
+⚠️ IMPORTANTE: Sé HONESTO. Si los perros son claramente diferentes, da un porcentaje BAJO (0-30%) y explica POR QUÉ son diferentes.
 
 Responde SOLO en este formato EXACTO:
 
 Porcentaje: [número del 0 al 100]
-Explicación: [análisis específico mencionando color, orejas, hocico y diferencias encontradas]
-
-Ejemplo de respuesta buena:
-Porcentaje: 75
-Explicación: Mismo color dorado claro. Ambos tienen orejas caídas y hocico mediano. La mancha blanca en el pecho coincide. La única diferencia es que uno tiene collar rojo.`;
+Explicación: [análisis específico mencionando: color, orejas, hocico, y las PRINCIPALES DIFERENCIAS que encuentres]`;
 
     const result = await model.generateContent([
       { text: prompt },
@@ -352,13 +345,17 @@ Explicación: Mismo color dorado claro. Ambos tienen orejas caídas y hocico med
     
     if (explanationMatch) {
       explanation = explanationMatch[1].trim();
+    } else {
+      explanation = fullResponse.substring(0, 300);
     }
+    
+    console.log(`📊 Gemini: ${similarityPercentage}% - ${explanation.substring(0, 100)}...`);
     
     return { similarity: similarityPercentage, explanation };
     
   } catch (error) {
     console.error('Error en Gemini:', error);
-    return { similarity: 0, explanation: 'Error al comparar' };
+    return { similarity: 0, explanation: 'Error al comparar las imágenes' };
   }
 }
 
