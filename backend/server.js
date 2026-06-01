@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import 'dotenv/config';
 import { neon } from '@neondatabase/serverless';
 import express from 'express';
-import cors from 'cors';1
+import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -362,23 +362,16 @@ app.post('/api/analyze-dog', async (req, res) => {
     
     console.log('🔍 Analizando imagen con Gemini (raza/color)...');
     
-    // Obtener la imagen
     const response = await fetch(imageUrl);
     const buffer = await response.arrayBuffer();
     const base64Image = Buffer.from(buffer).toString('base64');
     
-    // Usar la segunda API key (GEMINI_API_KEY2)
-    const genAIAnalyze = new GoogleGenerativeAI(process.env.GEMINI_API_KEY2 || process.env.GEMINI_API_KEY);
-    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // ✅ CORREGIDO: usar gemini-1.5-flash
+    const model = genAIAnalyze.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `Analiza esta imagen de un perro y devuelve SOLO un JSON con este formato exacto:
-{
-  "breed": "raza del perro",
-  "color": "color principal del perro"
-}
-
-Si no puedes identificar la raza, escribe "Desconocida". Si no puedes identificar el color, escribe "Desconocido".
-NO agregues texto adicional fuera del JSON.`;
+{"breed": "raza del perro", "color": "color principal del perro"}
+Si no puedes identificar, usa "Desconocida". NO agregues texto adicional.`;
     
     const result = await model.generateContent([
       { text: prompt },
@@ -386,36 +379,20 @@ NO agregues texto adicional fuera del JSON.`;
     ]);
     
     const responseText = result.response.text();
-    console.log('📝 Respuesta de Gemini:', responseText);
-    
-    // Extraer JSON de la respuesta
     let jsonMatch = responseText.match(/\{[\s\S]*\}/);
     let analysis = { breed: 'Desconocida', color: 'Desconocido' };
     
     if (jsonMatch) {
       try {
         analysis = JSON.parse(jsonMatch[0]);
-      } catch (e) {
-        console.error('Error parsing JSON:', e);
-      }
+      } catch (e) {}
     }
     
-    console.log(`✅ Raza detectada: ${analysis.breed}, Color: ${analysis.color}`);
-    
-    res.json({ 
-      success: true, 
-      breed: analysis.breed || 'Desconocida',
-      color: analysis.color || 'Desconocido'
-    });
+    res.json({ success: true, breed: analysis.breed, color: analysis.color });
     
   } catch (error) {
-    console.error('Error en Gemini analyze-dog:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
-      breed: 'Desconocida',
-      color: 'Desconocido'
-    });
+    console.error('Error:', error);
+    res.status(500).json({ success: false, error: error.message, breed: 'Desconocida', color: 'Desconocido' });
   }
 });
 app.post('/api/users/register', async (req, res) => {
@@ -811,7 +788,6 @@ app.post('/api/compare-images', async (req, res) => {
     
     console.log('🔍 Comparando imágenes con Gemini...');
     
-    // Obtener las imágenes
     const response1 = await fetch(imageUrl1);
     const response2 = await fetch(imageUrl2);
     
@@ -821,30 +797,15 @@ app.post('/api/compare-images', async (req, res) => {
     const base64Image1 = Buffer.from(buffer1).toString('base64');
     const base64Image2 = Buffer.from(buffer2).toString('base64');
     
-    // Configurar Gemini
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // ✅ CORREGIDO: usar genAICompare
+    const model = genAICompare.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
-    // Nuevo prompt que pide porcentaje Y explicación
     const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
-
-Analiza cuidadosamente:
-- Forma y posición de las orejas
-- Patrón de manchas en el pelaje
-- Color y textura del pelaje
-- Tamaño y proporciones corporales
-- Forma del hocico y la cabeza
-- Ojos, nariz y otras características faciales
 
 Responde en el siguiente formato EXACTO:
 
 Porcentaje: [número del 0 al 100]
-Explicación: [tu análisis detallado de por qué llegaste a este porcentaje]
-
-Ejemplo de respuesta:
-Porcentaje: 85
-Explicación: Ambos perros tienen orejas puntiagudas, pelaje marrón con mancha blanca en el pecho, y tamaño similar. La única diferencia es que uno parece tener una cicatriz en la oreja izquierda.
-
-No agregues texto adicional fuera de este formato.`;
+Explicación: [tu análisis detallado]`;
 
     const result = await model.generateContent([
       { text: prompt },
@@ -852,10 +813,8 @@ No agregues texto adicional fuera de este formato.`;
       { inlineData: { mimeType: 'image/jpeg', data: base64Image2 } }
     ]);
     
-    const response = await result.response;
-    const fullResponse = response.text();
-    console.log('📝 Respuesta CRUDA de Gemini:', fullResponse);
-    // Extraer porcentaje y explicación del texto
+    const fullResponse = result.response.text();
+    
     let similarityPercentage = 0;
     let explanation = '';
     
@@ -865,28 +824,14 @@ No agregues texto adicional fuera de este formato.`;
     if (percentageMatch) {
       similarityPercentage = parseInt(percentageMatch[1]);
     }
-    
     if (explanationMatch) {
       explanation = explanationMatch[1].trim();
     }
     
-    // Si no pudo extraer el formato, intenta con búsqueda más flexible
-    if (!percentageMatch) {
-      const anyNumber = fullResponse.match(/\b(\d{1,3})\b/);
-      if (anyNumber) {
-        similarityPercentage = parseInt(anyNumber[1]);
-      }
-      explanation = fullResponse.substring(0, 300);
-    }
-    
-    console.log(`📊 Similitud Gemini: ${similarityPercentage}%`);
-    console.log(`📝 Explicación: ${explanation}`);
-    
     res.json({ 
       success: true, 
       similarityPercentage: Math.min(100, Math.max(0, similarityPercentage)),
-      explanation: explanation,
-      rawResponse: fullResponse
+      explanation: explanation
     });
     
   } catch (error) {
