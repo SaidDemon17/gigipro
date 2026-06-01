@@ -1747,6 +1747,47 @@ body {
     gap: 8px;
   }
 }
+/* Estilos para perros reunidos - se ubican al final */
+.dog-card.reunited-card {
+  background: #e8f5e9 !important;
+  border: 1px solid #81c784 !important;
+  position: relative;
+  order: 9999 !important;
+  opacity: 0.85;
+}
+
+.dog-card.reunited-card .dog-card-img {
+  filter: grayscale(0.3);
+}
+
+.dog-card.reunited-card .badge-reunited {
+  background: #2E7D32 !important;
+  color: white !important;
+  animation: pulse-reunited 1s ease;
+}
+
+@keyframes pulse-reunited {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Contenedor del grid para ordenar correctamente */
+.dogs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+/* Los perros reunidos se ordenan al final automáticamente */
+.dogs-grid:has(.reunited-card) {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.dog-card.reunited-card {
+  margin-bottom: 20px;
+}
 /* ── ANIMACIONES ── */
 .ai-loading{position:fixed;bottom:20px;right:20px;background:var(--primary);color:white;padding:8px 16px;border-radius:20px;font-size:0.8rem;z-index:1000;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
