@@ -154,7 +154,204 @@ async function initDB() {
 // ============================================
 // ENDPOINT PARA ANALIZAR IMAGEN CON GEMINI (raza + color)
 // ============================================
+// ============================================
+// FUNCIONES DE COMPARACIÓN 1x1
+// ============================================
 
+// Calcular distancia entre dos coordenadas
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 1000000;
+  
+  const R = 6371e3;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
+}
+
+// Primer filtro (raza, color, tamaño, ubicación)
+function calculateFilterScore(dog1, dog2) {
+  let score = 0;
+  let total = 0;
+  
+  // 1. RAZA - 40%
+  if (dog1.breed && dog2.breed) {
+    total += 40;
+    if (dog1.breed.toLowerCase() === dog2.breed.toLowerCase()) {
+      score += 40;
+    } else if (dog1.breed.toLowerCase().includes(dog2.breed.toLowerCase()) || 
+               dog2.breed.toLowerCase().includes(dog1.breed.toLowerCase())) {
+      score += 20;
+    }
+  }
+  
+  // 2. COLOR - 20%
+  if (dog1.color && dog2.color) {
+    total += 20;
+    if (dog1.color.toLowerCase() === dog2.color.toLowerCase()) {
+      score += 20;
+    } else if (dog1.color.toLowerCase().includes(dog2.color.toLowerCase()) || 
+               dog2.color.toLowerCase().includes(dog1.color.toLowerCase())) {
+      score += 10;
+    }
+  }
+  
+  // 3. TAMAÑO - 20%
+  if (dog1.size && dog2.size) {
+    total += 20;
+    const sizeMap = { 'pequeño': 1, 'mediano': 2, 'grande': 3 };
+    let size1 = 2, size2 = 2;
+    
+    for (const [key, value] of Object.entries(sizeMap)) {
+      if (dog1.size.toLowerCase().includes(key)) size1 = value;
+      if (dog2.size.toLowerCase().includes(key)) size2 = value;
+    }
+    
+    if (size1 === size2) {
+      score += 20;
+    } else if (Math.abs(size1 - size2) === 1) {
+      score += 10;
+    }
+  }
+  
+  // 4. UBICACIÓN - 20%
+  if (dog1.location_lat && dog2.location_lat) {
+    total += 20;
+    const distance = calculateDistance(
+      dog1.location_lat, dog1.location_lon,
+      dog2.location_lat, dog2.location_lon
+    );
+    const distanceKm = distance / 1000;
+    const locationScore = Math.max(0, 100 - (distanceKm * 10));
+    score += locationScore * 0.2;
+  }
+  
+  return total > 0 ? Math.round((score / total) * 100) : 0;
+}
+
+// Comparar con Gemini
+async function compareWithGemini(imageUrl1, imageUrl2) {
+  try {
+    const response1 = await fetch(imageUrl1);
+    const response2 = await fetch(imageUrl2);
+    
+    const buffer1 = await response1.arrayBuffer();
+    const buffer2 = await response2.arrayBuffer();
+    
+    const base64Image1 = Buffer.from(buffer1).toString('base64');
+    const base64Image2 = Buffer.from(buffer2).toString('base64');
+    
+    const model = genAICompare.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
+
+Responde en el siguiente formato EXACTO:
+
+Porcentaje: [número del 0 al 100]
+Explicación: [tu análisis detallado]`;
+
+    const result = await model.generateContent([
+      { text: prompt },
+      { inlineData: { mimeType: 'image/jpeg', data: base64Image1 } },
+      { inlineData: { mimeType: 'image/jpeg', data: base64Image2 } }
+    ]);
+    
+    const fullResponse = result.response.text();
+    
+    let similarityPercentage = 0;
+    let explanation = '';
+    
+    const percentageMatch = fullResponse.match(/Porcentaje:\s*(\d+)/i);
+    const explanationMatch = fullResponse.match(/Explicación:\s*([\s\S]+?)(?=$|Porcentaje)/i);
+    
+    if (percentageMatch) {
+      similarityPercentage = parseInt(percentageMatch[1]);
+    }
+    
+    if (explanationMatch) {
+      explanation = explanationMatch[1].trim();
+    }
+    
+    return { similarity: similarityPercentage, explanation };
+    
+  } catch (error) {
+    console.error('Error en Gemini:', error);
+    return { similarity: 0, explanation: 'Error al comparar' };
+  }
+}
+
+// Comparar un perro encontrado con todos los perdidos (1 sola vez)
+async function compareFoundWithAllLost(foundDogId) {
+  console.log(`🔄 Iniciando comparación para perro encontrado ID: ${foundDogId}`);
+  
+  try {
+    // Obtener el perro encontrado
+    const foundResult = await sql`SELECT * FROM dog_reports WHERE id = ${foundDogId}`;
+    if (foundResult.length === 0) return;
+    const foundDog = foundResult[0];
+    
+    // Obtener todos los perros perdidos activos
+    const lostDogs = await sql`SELECT * FROM dog_reports WHERE type = 'lost' AND status = 'active'`;
+    
+    console.log(`📊 Comparando con ${lostDogs.length} perros perdidos`);
+    
+    for (const lostDog of lostDogs) {
+      // Verificar si ya existe una coincidencia guardada
+      const existingMatch = await sql`
+        SELECT id FROM ai_matches 
+        WHERE lost_dog_id = ${lostDog.id} AND found_dog_id = ${foundDogId}
+      `;
+      
+      if (existingMatch.length > 0) {
+        console.log(`⏭️ Ya existe coincidencia para lost:${lostDog.id} / found:${foundDogId}`);
+        continue;
+      }
+      
+      // 1. Primer filtro
+      const filterScore = calculateFilterScore(lostDog, foundDog);
+      
+      // 2. Si pasa el filtro (≥70%), comparar con Gemini
+      if (filterScore >= 70) {
+        console.log(`🔍 Filtro pasado (${filterScore}%) - Comparando con Gemini para perro ${lostDog.name}`);
+        
+        let geminiScore = 0;
+        let explanation = '';
+        
+        if (lostDog.photos?.length > 0 && foundDog.photos?.length > 0) {
+          const geminiResult = await compareWithGemini(lostDog.photos[0], foundDog.photos[0]);
+          geminiScore = geminiResult.similarity;
+          explanation = geminiResult.explanation;
+        }
+        
+        // 3. Calcular puntaje final (60% filtro, 40% Gemini)
+        const finalScore = Math.round((filterScore * 0.6) + (geminiScore * 0.4));
+        
+        // 4. Guardar en base de datos
+        await sql`
+          INSERT INTO ai_matches (lost_dog_id, found_dog_id, filter_score, gemini_score, final_score, explanation)
+          VALUES (${lostDog.id}, ${foundDogId}, ${filterScore}, ${geminiScore}, ${finalScore}, ${explanation})
+          ON CONFLICT (lost_dog_id, found_dog_id) DO NOTHING
+        `;
+        
+        console.log(`✅ Coincidencia guardada: ${finalScore}% (filtro:${filterScore}, gemini:${geminiScore})`);
+      } else {
+        console.log(`❌ Filtro no pasado (${filterScore}%) - Descartado`);
+      }
+    }
+    
+    console.log(`🏁 Comparación completada para perro encontrado ID: ${foundDogId}`);
+    
+  } catch (error) {
+    console.error('Error en compareFoundWithAllLost:', error);
+  }
+}
 app.post('/api/analyze-dog', async (req, res) => {
   try {
     const { imageUrl } = req.body;
@@ -469,7 +666,41 @@ app.get('/api/reports', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+// ============================================
+// OBTENER COINCIDENCIAS GUARDADAS PARA UN PERRO PERDIDO
+// ============================================
 
+app.get('/api/matches/:lostDogId', async (req, res) => {
+  try {
+    const { lostDogId } = req.params;
+    
+    const matches = await sql`
+      SELECT 
+        m.id,
+        m.final_score as similarity,
+        m.explanation,
+        m.created_at,
+        d.id as dog_id,
+        d.name,
+        d.breed,
+        d.color,
+        d.size,
+        d.location_address,
+        d.photos,
+        d.report_date as date
+      FROM ai_matches m
+      JOIN dog_reports d ON m.found_dog_id = d.id
+      WHERE m.lost_dog_id = ${lostDogId}
+      ORDER BY m.final_score DESC
+    `;
+    
+    res.json(matches);
+    
+  } catch (error) {
+    console.error('Error obteniendo coincidencias:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 app.post('/api/reports', async (req, res) => {
   try {
     const data = req.body;
@@ -495,7 +726,14 @@ app.post('/api/reports', async (req, res) => {
     
     console.log('✅ Reporte guardado ID:', result[0].id);
     
-    // 👈 Asegúrate de devolver success: true
+    // ✅ NUEVO: Si es un perro ENCONTRADO, disparar comparación automática
+    if (data.type === 'found') {
+      // Ejecutar comparación en segundo plano (no bloquear la respuesta)
+      compareFoundWithAllLost(result[0].id).catch(err => {
+        console.error('Error en comparación automática:', err);
+      });
+    }
+    
     res.json({ 
       success: true, 
       report: result[0],
