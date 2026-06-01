@@ -352,7 +352,7 @@ async function renderHomeGrids() {
     <div class="section carousel-section">
       <div class="section-header">
         <div>
-          <div class="section-title">Perros Encontrados Recientemente</div>
+          <div class="section-title">Perros Deambulantes Recientemente</div>
           <div class="section-sub">¿Es alguno de estos tu amigo peludo?</div>
         </div>
         <button class="btn btn-outline btn-sm" onclick="showPage('found')">Ver Todos →</button>
