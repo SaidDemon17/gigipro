@@ -21,7 +21,7 @@ if (dog.reward && dog.reward !== '') {
   } else if (dog.type === 'lost') {
     typeBadge = `<span class="badge badge-lost">⚠️ PERDIDO</span>`;
   } else {
-    typeBadge = `<span class="badge badge-found">📍 ENCONTRADO</span>`;
+    typeBadge = `<span class="badge badge-found">🚶 DEAMBULANTE</span>`;
   }
   
   const dogName = dog.name || 'Desconocido';
