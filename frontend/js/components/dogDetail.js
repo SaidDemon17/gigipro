@@ -360,7 +360,7 @@ async function showDetail(id) {
   
   // Cargar y mostrar coincidencias guardadas después de renderizar
   setTimeout(() => {
-    displaySavedMatches(dog.id, isOwne0r,dog.type);
+    displaySavedMatches(dog.id, isOwner,dog.type);
   }, 100);
 }
 
