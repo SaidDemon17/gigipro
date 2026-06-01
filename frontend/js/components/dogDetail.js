@@ -77,6 +77,7 @@ async function loadSavedMatches(dogId) {
 // ============================================
 
 // Mostrar coincidencias guardadas (solo para el dueño)
+// Mostrar coincidencias guardadas (todas, incluso las bajas)
 async function displaySavedMatches(dogId, isOwner, dogType) {
   const resultsDiv = document.getElementById('ai-results');
   const confidenceDiv = document.getElementById('ai-confidence');
@@ -98,7 +99,6 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
           <span>📊 Análisis con Gemini</span>
           <span>💬 Si reconoces este perro, deja un comentario</span>
         </div>
-        <small>💡 El dueño recibirá notificaciones si hay coincidencias con perros encontrados.</small>
       </div>
     `;
     resultsDiv.style.display = 'block';
@@ -124,7 +124,7 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
     return;
   }
   
-  // Si es el dueño, cargar y mostrar coincidencias
+  // Si es el dueño, cargar y mostrar TODAS las coincidencias (incluso bajas)
   const matches = await loadSavedMatches(dogId);
   
   if (!matches || matches.length === 0) {
@@ -140,6 +140,7 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
     return;
   }
   
+  // Mostrar todas las coincidencias (ordenadas por porcentaje de mayor a menor)
   const bestMatchPercentage = matches[0].similarity;
   const confidenceClass = getMatchColor(bestMatchPercentage);
   const confidenceText = getConfidenceText(bestMatchPercentage);
@@ -149,9 +150,15 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
   
   const matchesHtml = matches.map(match => {
     const cls = getMatchColor(match.similarity);
-    const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation.substring(0, 200))}</div>` : '';
+    const explanationHtml = match.explanation ? `<div class="match-explanation">💬 ${escapeHtml(match.explanation)}</div>` : '';
     const photoUrl = match.photos?.[0] || null;
     const matchDate = new Date(match.created_at).toLocaleDateString('es-ES');
+    
+    // Mostrar color del porcentaje según el valor
+    let percentageColor = '';
+    if (match.similarity >= 70) percentageColor = '#2E7D32';
+    else if (match.similarity >= 40) percentageColor = '#FFBA08';
+    else percentageColor = '#DC2F02';
     
     return `<div class="match-item" onclick="showDetail(${match.dog_id})" style="cursor:pointer">
       <div class="match-thumb">${photoUrl ? `<img src="${photoUrl}" style="width:52px; height:52px; object-fit:cover; border-radius:8px">` : '🐕'}</div>
@@ -163,7 +170,7 @@ async function displaySavedMatches(dogId, isOwner, dogType) {
         <div class="match-date" style="font-size:0.7rem; color:var(--gray-400); margin-top:4px">📅 Comparado el ${matchDate}</div>
       </div>
       <div>
-        <div class="match-pct ${cls}">${match.similarity}%</div>
+        <div class="match-pct ${cls}" style="color:${percentageColor}">${match.similarity}%</div>
         <div style="font-size:.72rem;color:var(--gray-400);text-align:right">${getConfidenceText(match.similarity)}</div>
       </div>
     </div>`;
