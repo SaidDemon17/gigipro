@@ -1,5 +1,18 @@
 function dogCard(dog, showBtn = true) {
-  const rewardBadge = dog.reward && dog.reward !== '' ? `<span class="badge badge-reward">💰 ${dog.reward}</span>` : '';
+  // Generar badge de recompensa con colores por rango
+let rewardBadge = '';
+if (dog.reward && dog.reward !== '') {
+  const rewardAmount = parseInt(dog.reward.replace(/[^0-9]/g, ''));
+  let rewardClass = '';
+  
+  if (rewardAmount >= 1000) {
+    rewardClass = 'elite';
+  } else if (rewardAmount >= 500) {
+    rewardClass = 'high';
+  }
+  
+  rewardBadge = `<span class="badge badge-reward ${rewardClass}">💰 ${dog.reward}</span>`;
+}
   
   // Badge con colores mejorados
   let typeBadge = '';
