@@ -130,7 +130,7 @@ function startInfiniteAutoScroll(trackId, direction = 1) {
     }
     
     scrollInfiniteCarousel(trackId, direction);
-  }, 4000);
+  }, 2000);
 }
 
 // Detener auto-scroll
