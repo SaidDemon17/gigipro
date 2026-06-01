@@ -7,6 +7,9 @@ let currentLocation = { lat: null, lon: null, address: '' };
 let cropper = null;
 let currentFileToCrop = null;
 
+let currentStep = 1;
+let formData = {};
+
 function renderReportPage() {
   if (!isLoggedIn()) {
     showToast('Por favor inicia sesión para reportar un perro', '');
@@ -14,11 +17,14 @@ function renderReportPage() {
     return;
   }
   
+  currentStep = 1;
+  formData = {};
+  
   const html = `
     <div class="report-page">
       <div class="report-header">
         <h1>📝 Reportar un Perro</h1>
-        <p>Ayuda a reunir a un perro perdido con su familia enviando un reporte.</p>
+        <p>Ayuda a reunir a un perro perdido con su familia. Completá los siguientes pasos.</p>
       </div>
       
       <div class="report-layout">
@@ -43,115 +49,138 @@ function renderReportPage() {
             </div>
           </div>
           
-          <div class="form-card">
-            <h2>📋 Tipo de Reporte</h2>
-            <div class="type-toggle">
-              <button class="type-btn active" id="type-lost" onclick="setType('lost')">🔴 Perro Perdido</button>
-              <button class="type-btn" id="type-found" onclick="setType('found')">🟡 Perro Encontrado</button>
-            </div>
-          </div>
-
-          <div class="form-card">
-            <h2>📸 Fotos del Perro</h2>
-            <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
-              <div class="upload-icon">📸</div>
-              <div class="upload-text">Haz clic o arrastra y suelta para subir fotos</div>
-              <div class="upload-sub">PNG, JPG hasta 10MB cada una — múltiples fotos permitidas</div>
-            </div>
-            <input type="file" id="file-input" multiple accept="image/jpeg,image/png" style="display:none" onchange="handleFileSelect(this.files)"/>
-            <div id="image-preview-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px"></div>
-          </div>
-
-          <div class="form-card">
-            <h2>🐾 Información del Perro</h2>
-            <div class="form-grid">
-              <div class="form-group" id="dog-name-group">
-                <label>Nombre del Perro <span style="color:var(--gray-400); font-weight:normal">(si se sabe)</span></label>
-                <input type="text" id="dogName" placeholder="Ej: Buddy"/>
+          <!-- PASO 1: Tipo de Reporte -->
+          <div id="step-1" class="form-step active">
+            <div class="form-card">
+              <h2>📋 Tipo de Reporte</h2>
+              <div class="type-toggle">
+                <button class="type-btn active" id="type-lost" onclick="setType('lost')">🔴 Perro Perdido</button>
+                <button class="type-btn" id="type-found" onclick="setType('found')">🟡 Perro Encontrado</button>
               </div>
-              <div class="form-group">
-                <label>Raza</label>
-                <input type="text" id="breed" placeholder="Ej: Golden Retriever" value="Desconocida"/>
-                <small style="color: var(--gray-500); font-size: 0.7rem;">🤖 La IA detectará la raza automáticamente</small>
-              </div>
-              <div class="form-group"><label>Color</label><input type="text" id="color" placeholder="Ej: Dorado/crema"/></div>
-              <div class="form-group"><label>Tamaño</label><select id="size">
-                <option>Pequeño (menos de 9 kg)</option><option>Mediano (9-23 kg)</option><option>Grande (más de 23 kg)</option>
-              </select></div>
-              <div class="form-group"><label>Género</label><select id="gender"><option>Desconocido</option><option>Macho</option><option>Hembra</option></select></div>
-              <div class="form-group"><label>Edad (aprox.)</label><input type="text" id="age" placeholder="Ej: 3 años"/></div>
-              <div class="form-group full"><label>Descripción</label><textarea id="description" placeholder="Describe al perro — color de collar, marcas, características distintivas, información de microchip…"></textarea></div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:24px">
+              <button class="btn btn-primary" onclick="nextStep()">Siguiente →</button>
             </div>
           </div>
           
-          <div id="extra-details-section" class="form-card">
-            <h2>🐾 Detalles Adicionales (Opcional)</h2>
-            <div class="form-grid">
-              <div class="form-group full">
-                <label>Descripción Física</label>
-                <textarea id="physical" rows="2" placeholder="Ej: Orejas puntiagudas, cola larga, mancha blanca en el pecho..."></textarea>
+          <!-- PASO 2: Fotos -->
+          <div id="step-2" class="form-step">
+            <div class="form-card">
+              <h2>📸 Fotos del Perro</h2>
+              <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Haz clic o arrastra y suelta para subir fotos</div>
+                <div class="upload-sub">PNG, JPG hasta 10MB cada una — hasta 5 fotos</div>
               </div>
-              <div class="form-group full">
-                <label>Personalidad</label>
-                <textarea id="personality" rows="2" placeholder="Ej: Juguetón, cariñoso, tímido con extraños, le gusta correr..."></textarea>
-              </div>
+              <input type="file" id="file-input" multiple accept="image/jpeg,image/png" style="display:none" onchange="handleFileSelect(this.files)"/>
+              <div id="image-preview-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px"></div>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:24px">
+              <button class="btn btn-outline" onclick="prevStep()">← Anterior</button>
+              <button class="btn btn-primary" onclick="nextStep()">Siguiente →</button>
             </div>
           </div>
           
-          <div class="form-card">
-            <h2>📍 Ubicación y Fecha</h2>
-            <div class="form-grid">
+          <!-- PASO 3: Datos del Perro -->
+          <div id="step-3" class="form-step">
+            <div class="form-card">
+              <h2>🐾 Información del Perro</h2>
+              <div class="form-grid">
+                <div class="form-group" id="dog-name-group">
+                  <label>Nombre del Perro</label>
+                  <input type="text" id="dogName" placeholder="Ej: Buddy"/>
+                </div>
+                <div class="form-group">
+                  <label>Raza</label>
+                  <input type="text" id="breed" placeholder="Ej: Golden Retriever" value="Desconocida"/>
+                  <small style="color: var(--gray-500); font-size: 0.7rem;">🤖 La IA detectará la raza automáticamente</small>
+                </div>
+                <div class="form-group"><label>Color</label><input type="text" id="color" placeholder="Ej: Dorado/crema"/></div>
+                <div class="form-group"><label>Tamaño</label><select id="size">
+                  <option>Pequeño (menos de 9 kg)</option><option>Mediano (9-23 kg)</option><option>Grande (más de 23 kg)</option>
+                </select></div>
+                <div class="form-group"><label>Género</label><select id="gender"><option>Desconocido</option><option>Macho</option><option>Hembra</option></select></div>
+                <div class="form-group"><label>Edad (aprox.)</label><input type="text" id="age" placeholder="Ej: 3 años"/></div>
+                <div class="form-group full"><label>Descripción</label><textarea id="description" rows="3" placeholder="Describe al perro — color de collar, marcas, características distintivas…"></textarea></div>
+              </div>
+            </div>
+            
+            <div id="extra-details-section" class="form-card">
+              <h2>🐾 Detalles Adicionales (Opcional)</h2>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label>Descripción Física</label>
+                  <textarea id="physical" rows="2" placeholder="Ej: Orejas puntiagudas, cola larga, mancha blanca en el pecho..."></textarea>
+                </div>
+                <div class="form-group full">
+                  <label>Personalidad</label>
+                  <textarea id="personality" rows="2" placeholder="Ej: Juguetón, cariñoso, tímido con extraños..."></textarea>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-card" id="reward-section">
+              <h2>💰 Recompensa (Opcional)</h2>
+              <div class="form-grid">
+                <div class="form-group"><label>Monto de Recompensa</label><input type="text" id="reward" placeholder="Ej: S/500"/></div>
+              </div>
+            </div>
+            
+            <div style="display:flex; gap:12px; margin-top:24px">
+              <button class="btn btn-outline" onclick="prevStep()">← Anterior</button>
+              <button class="btn btn-primary" onclick="nextStep()">Siguiente →</button>
+            </div>
+          </div>
+          
+          <!-- PASO 4: Ubicación y Contacto -->
+          <div id="step-4" class="form-step">
+            <div class="form-card">
+              <h2>📍 Ubicación</h2>
               <div class="form-group full">
-                <label>📍 Ubicación del reporte</label>
+                <label>Ubicación del reporte</label>
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                  <button type="button" class="btn btn-outline btn-sm" onclick="getUserLocation()" style="display: flex; align-items: center; gap: 6px;">
-                    <span>📍</span> Usar mi ubicación actual
+                  <button type="button" class="btn btn-outline btn-sm" onclick="getUserLocation()">
+                    📍 Usar mi ubicación
                   </button>
-                  <button type="button" class="btn btn-outline btn-sm" onclick="resetMapLocation()" style="display: flex; align-items: center; gap: 6px;">
-                    <span>🗺️</span> Restablecer mapa
+                  <button type="button" class="btn btn-outline btn-sm" onclick="resetMapLocation()">
+                    🗺️ Restablecer mapa
                   </button>
                 </div>
-                <div id="report-map" style="height: 300px; width: 100%; border-radius: 12px; margin-bottom: 10px;"></div>
+                <div id="report-map" style="height: 250px; width: 100%; border-radius: 12px; margin-bottom: 10px;"></div>
                 <input type="text" id="location-address" placeholder="La dirección aparecerá aquí" readonly style="background:#f0f0f0"/>
                 <input type="hidden" id="location-lat" />
                 <input type="hidden" id="location-lon" />
-                <small style="color: var(--gray-500);">🔍 Haz clic en el mapa o usa "Mi ubicación"</small>
               </div>
-              <div class="form-group"><label>Fecha</label><input type="date" id="date"/></div>
-              <div class="form-group"><label>Hora (aprox.)</label><input type="time" id="time"/></div>
+              <div class="form-grid">
+                <div class="form-group"><label>Fecha</label><input type="date" id="date"/></div>
+                <div class="form-group"><label>Hora (aprox.)</label><input type="time" id="time"/></div>
+              </div>
             </div>
-          </div>
-
-          <div class="form-card" id="reward-section">
-            <h2>💰 Recompensa (Opcional)</h2>
-            <div class="form-grid">
-              <div class="form-group"><label>Monto de Recompensa</label><input type="text" id="reward" placeholder="Ej: S/500 o dejar en blanco"/></div>
+            
+            <div class="form-card">
+              <h2>📞 Información de Contacto</h2>
+              <div class="form-grid">
+                <div class="form-group"><label>Tu Nombre</label><input type="text" id="contactName" placeholder="Tu nombre"/></div>
+                <div class="form-group"><label>Teléfono</label><input type="tel" id="phone" placeholder="(555) 000-0000"/></div>
+                <div class="form-group full"><label>Email</label><input type="email" id="email" placeholder="tu@email.com"/></div>
+              </div>
             </div>
-          </div>
-
-          <div class="form-card">
-            <h2>📞 Información de Contacto</h2>
-            <div class="form-grid">
-              <div class="form-group"><label>Tu Nombre</label><input type="text" id="contactName" placeholder="Tu nombre"/></div>
-              <div class="form-group"><label>Teléfono</label><input type="tel" id="phone" placeholder="(555) 000-0000"/></div>
-              <div class="form-group full"><label>Email</label><input type="email" id="email" placeholder="tu@email.com"/></div>
+            
+            <div style="display:flex; gap:12px; margin-top:24px">
+              <button class="btn btn-outline" onclick="prevStep()">← Anterior</button>
+              <button class="btn btn-primary" onclick="submitReport()">📤 Enviar Reporte</button>
             </div>
           </div>
           
           <!-- Progress bar -->
           <div class="form-progress">
             <div class="progress-bar-container">
-              <span class="progress-text" id="progress-percent">0%</span>
+              <span class="progress-text" id="progress-percent">25%</span>
               <div class="progress-bar-fill">
-                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                <div class="progress-fill" id="progress-fill" style="width: 25%"></div>
               </div>
             </div>
-            <p class="progress-message" id="progress-message">Completa el formulario para ayudar a encontrar a este perro 🐾</p>
-          </div>
-          
-          <div style="display:flex;gap:12px;margin-top:24px;margin-bottom:40px">
-            <button class="btn btn-outline" style="flex:1" onclick="previewReport()">👁️ Vista Previa</button>
-            <button class="btn btn-primary" style="flex:2" onclick="submitReport()">📤 Enviar Reporte →</button>
+            <p class="progress-message" id="progress-message">Paso 1 de 4: Selecciona el tipo de reporte 🐾</p>
           </div>
         </div>
         
@@ -162,28 +191,21 @@ function renderReportPage() {
               <div class="tip-icon">📸</div>
               <div class="tip-content">
                 <h4>Buena foto = Más chances</h4>
-                <p>Una foto clara aumenta 3x las probabilidades de encontrar a tu perro.</p>
+                <p>Una foto clara aumenta 3x las probabilidades.</p>
               </div>
             </div>
             <div class="tip-item">
               <div class="tip-icon">📍</div>
               <div class="tip-content">
                 <h4>Ubicación precisa</h4>
-                <p>Sé específico con el lugar donde se vio por última vez.</p>
+                <p>Sé específico con el lugar donde se vio.</p>
               </div>
             </div>
             <div class="tip-item">
               <div class="tip-icon">🏷️</div>
               <div class="tip-content">
-                <h4>Menciona señas particulares</h4>
-                <p>Microchip, collar, cicatrices o manchas ayudan a identificarlo.</p>
-              </div>
-            </div>
-            <div class="tip-item">
-              <div class="tip-icon">🤖</div>
-              <div class="tip-content">
-                <h4>IA inteligente</h4>
-                <p>Nuestra IA comparará tu reporte con otros automáticamente.</p>
+                <h4>Señas particulares</h4>
+                <p>Microchip, collar, cicatrices o manchas.</p>
               </div>
             </div>
           </div>
@@ -196,14 +218,87 @@ function renderReportPage() {
   initReportMap();
   setupDragAndDrop();
   updateFormFields();
-  updateFormProgress();
+  updateStepUI();
+}
+
+// Función para ir al siguiente paso
+function nextStep() {
+  if (currentStep < 4) {
+    // Validar paso actual
+    if (currentStep === 2 && selectedFiles.length === 0) {
+      showToast('Por favor sube al menos una foto del perro', '');
+      return;
+    }
+    if (currentStep === 3) {
+      const breed = document.getElementById('breed')?.value;
+      if (!breed || breed === 'Desconocida') {
+        showToast('Por favor ingresa la raza del perro', '');
+        return;
+      }
+    }
+    if (currentStep === 4) {
+      const contactName = document.getElementById('contactName')?.value;
+      const email = document.getElementById('email')?.value;
+      if (!contactName || !email) {
+        showToast('Por favor completa tu nombre y email', '');
+        return;
+      }
+    }
+    
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    currentStep++;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    updateStepUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// Función para ir al paso anterior
+function prevStep() {
+  if (currentStep > 1) {
+    document.getElementById(`step-${currentStep}`).classList.remove('active');
+    currentStep--;
+    document.getElementById(`step-${currentStep}`).classList.add('active');
+    updateStepUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// Actualizar UI del stepper y progress bar
+function updateStepUI() {
+  // Actualizar stepper
+  for (let i = 1; i <= 4; i++) {
+    const stepItem = document.querySelector(`.step-item[data-step="${i}"]`);
+    if (stepItem) {
+      if (i < currentStep) {
+        stepItem.classList.add('completed');
+        stepItem.classList.remove('active');
+      } else if (i === currentStep) {
+        stepItem.classList.add('active');
+        stepItem.classList.remove('completed');
+      } else {
+        stepItem.classList.remove('active', 'completed');
+      }
+    }
+  }
   
-  // Agregar evento para actualizar progress cuando se llenan campos
-  const inputs = document.querySelectorAll('#page-report input, #page-report select, #page-report textarea');
-  inputs.forEach(input => {
-    input.addEventListener('input', updateFormProgress);
-    input.addEventListener('change', updateFormProgress);
-  });
+  // Actualizar progress bar
+  const percentage = (currentStep / 4) * 100;
+  const progressFill = document.getElementById('progress-fill');
+  const progressPercent = document.getElementById('progress-percent');
+  const progressMessage = document.getElementById('progress-message');
+  
+  if (progressFill) progressFill.style.width = `${percentage}%`;
+  if (progressPercent) progressPercent.textContent = `${Math.round(percentage)}%`;
+  
+  const messages = {
+    1: 'Paso 1 de 4: Selecciona el tipo de reporte 🐾',
+    2: 'Paso 2 de 4: Sube fotos del perro 📸',
+    3: 'Paso 3 de 4: Completa los datos del perro 📝',
+    4: 'Paso 4 de 4: Ubicación y contacto - ¡Último paso! 🎉'
+  };
+  
+  if (progressMessage) progressMessage.textContent = messages[currentStep];
 }
 
 // Función para actualizar la barra de progreso
