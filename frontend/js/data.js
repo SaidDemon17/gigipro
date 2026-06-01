@@ -27,7 +27,7 @@ async function loadReportsFromBackend() {
         reward: report.reward || '',
         desc: report.description || 'No description',
         emoji: '🐕',
-        status: report.type === 'lost' ? 'Lost' : 'Found',
+        status: report.status || (report.type === 'lost' ? 'Lost' : 'Found'),
         contact: report.contact_phone,
         email: report.contact_email,
         location_lat: report.location_lat,
