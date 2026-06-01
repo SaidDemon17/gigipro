@@ -360,6 +360,7 @@ Explicación: [análisis específico mencionando: color, orejas, hocico, y las P
 }
 
 // Comparar un perro encontrado con TODOS los perros perdidos
+// Comparar un perro encontrado con TODOS los perros perdidos
 async function compareFoundWithAllLost(foundDogId) {
   console.log(`🔄 Iniciando comparación para perro encontrado ID: ${foundDogId}`);
   
@@ -394,7 +395,8 @@ async function compareFoundWithAllLost(foundDogId) {
       const matchScore = calculateMatchScore(lostDog, foundDog);
       console.log(`📊 Puntaje filtro: ${matchScore}%`);
       
-      if (matchScore >= 20) {
+      // Siempre comparar con Gemini si pasa el filtro de 40%
+      if (matchScore >= 40) {
         console.log(`🔍 Pasó filtro (${matchScore}%) - Comparando con Gemini...`);
         
         let geminiScore = 0;
@@ -406,18 +408,16 @@ async function compareFoundWithAllLost(foundDogId) {
           explanation = geminiResult.explanation;
         }
         
+        // El puntaje final es SOLO el de Gemini
         const finalScore = geminiScore;
         
-        if (finalScore >= 50) {
-          await sql`
-            INSERT INTO ai_matches (lost_dog_id, found_dog_id, filter_score, gemini_score, final_score, explanation)
-            VALUES (${lostDog.id}, ${foundDogId}, ${matchScore}, ${geminiScore}, ${finalScore}, ${explanation})
-            ON CONFLICT (lost_dog_id, found_dog_id) DO NOTHING
-          `;
-          console.log(`✅ Coincidencia guardada: ${finalScore}% (solo Gemini)`);
-        } else {
-          console.log(`⚠️ Gemini dio ${finalScore}% - Por debajo del umbral, no se guarda`);
-        }
+        // ✅ SIEMPRE guardar, incluso si el porcentaje es bajo
+        await sql`
+          INSERT INTO ai_matches (lost_dog_id, found_dog_id, filter_score, gemini_score, final_score, explanation)
+          VALUES (${lostDog.id}, ${foundDogId}, ${matchScore}, ${geminiScore}, ${finalScore}, ${explanation})
+          ON CONFLICT (lost_dog_id, found_dog_id) DO NOTHING
+        `;
+        console.log(`✅ Coincidencia guardada: ${finalScore}% - ${explanation.substring(0, 50)}...`);
       } else {
         console.log(`❌ No pasó filtro (${matchScore}% < 40%) - Descartado`);
       }
@@ -431,6 +431,7 @@ async function compareFoundWithAllLost(foundDogId) {
 }
 
 // Comparar un perro perdido con TODOS los perros encontrados existentes (NUEVA FUNCIÓN)
+// Comparar un perro perdido con TODOS los perros encontrados existentes
 async function compareLostWithAllFound(lostDogId) {
   console.log(`🔄 Iniciando comparación para perro perdido ID: ${lostDogId}`);
   
@@ -465,6 +466,7 @@ async function compareLostWithAllFound(lostDogId) {
       const matchScore = calculateMatchScore(lostDog, foundDog);
       console.log(`📊 Puntaje filtro: ${matchScore}%`);
       
+      // Siempre comparar con Gemini si pasa el filtro de 40%
       if (matchScore >= 40) {
         console.log(`🔍 Pasó filtro (${matchScore}%) - Comparando con Gemini...`);
         
@@ -479,16 +481,13 @@ async function compareLostWithAllFound(lostDogId) {
         
         const finalScore = geminiScore;
         
-        if (finalScore >= 50) {
-          await sql`
-            INSERT INTO ai_matches (lost_dog_id, found_dog_id, filter_score, gemini_score, final_score, explanation)
-            VALUES (${lostDogId}, ${foundDog.id}, ${matchScore}, ${geminiScore}, ${finalScore}, ${explanation})
-            ON CONFLICT (lost_dog_id, found_dog_id) DO NOTHING
-          `;
-          console.log(`✅ Coincidencia guardada: ${finalScore}% (solo Gemini)`);
-        } else {
-          console.log(`⚠️ Gemini dio ${finalScore}% - Por debajo del umbral, no se guarda`);
-        }
+        // ✅ SIEMPRE guardar, incluso si el porcentaje es bajo
+        await sql`
+          INSERT INTO ai_matches (lost_dog_id, found_dog_id, filter_score, gemini_score, final_score, explanation)
+          VALUES (${lostDogId}, ${foundDog.id}, ${matchScore}, ${geminiScore}, ${finalScore}, ${explanation})
+          ON CONFLICT (lost_dog_id, found_dog_id) DO NOTHING
+        `;
+        console.log(`✅ Coincidencia guardada: ${finalScore}% - ${explanation.substring(0, 50)}...`);
       } else {
         console.log(`❌ No pasó filtro (${matchScore}% < 40%) - Descartado`);
       }
