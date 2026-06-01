@@ -294,12 +294,43 @@ async function compareWithGemini(imageUrl1, imageUrl2) {
     
     const model = genAICompare.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
-    const prompt = `Eres un experto en identificación de perros. Compara estas dos fotos de perros y determina si son el MISMO perro.
+    const prompt = `Eres un experto forense en identificación de perros. Compara estas DOS fotos de perros y determina la probabilidad de que sean el MISMO perro.
 
-Responde en el siguiente formato EXACTO:
+📌 CRITERIOS DE EVALUACIÓN (solo basado en lo que VES en las fotos):
+
+1. COLOR Y PATRONES (40% de importancia):
+   - Color principal del cuerpo
+   - Manchas, marcas o parches
+   - Color de patas, pecho, hocico y cola
+
+2. CARACTERÍSTICAS FACIALES (30% de importancia):
+   - Forma y posición de las orejas (paradas, caídas, largas, cortas)
+   - Forma del hocico (largo, corto, ancho)
+   - Ojos (color, forma, tamaño relativo)
+
+3. ESTRUCTURA CORPORAL (20% de importancia):
+   - Proporción cuerpo-patas
+   - Forma de la espalda y pecho
+   - Longitud de la cola
+
+4. SEÑAS PARTICULARES (10% de importancia):
+   - Collar, ropa o accesorios visibles
+   - Cicatrices o marcas únicas
+   - Expresión o postura característica
+
+⚠️ IMPORTANTE:
+- Si los COLORES son DIFERENTES → puntaje máximo 30%
+- Si las OREJAS son DIFERENTES (una caída vs una parada) → puntaje máximo 40%
+- Si el HOCICO es visiblemente DIFERENTE (largo vs chato) → puntaje máximo 50%
+
+Responde SOLO en este formato EXACTO:
 
 Porcentaje: [número del 0 al 100]
-Explicación: [tu análisis detallado]`;
+Explicación: [análisis específico mencionando color, orejas, hocico y diferencias encontradas]
+
+Ejemplo de respuesta buena:
+Porcentaje: 75
+Explicación: Mismo color dorado claro. Ambos tienen orejas caídas y hocico mediano. La mancha blanca en el pecho coincide. La única diferencia es que uno tiene collar rojo.`;
 
     const result = await model.generateContent([
       { text: prompt },
