@@ -1,23 +1,13 @@
 function dogCard(dog, showBtn = true) {
-  // Generar badge de recompensa con colores por rango
-let rewardBadge = '';
-if (dog.reward && dog.reward !== '') {
-  const rewardAmount = parseInt(dog.reward.replace(/[^0-9]/g, ''));
-  let rewardClass = '';
-  
-  if (rewardAmount >= 1000) {
-    rewardClass = 'elite';
-  } else if (rewardAmount >= 500) {
-    rewardClass = 'high';
-  }
-  
-  rewardBadge = `<span class="badge badge-reward ${rewardClass}">💰 ${dog.reward}</span>`;
-}
+  const rewardBadge = dog.reward && dog.reward !== '' ? `<span class="badge badge-reward">💰 ${dog.reward}</span>` : '';
   
   // Badge con colores mejorados
   let typeBadge = '';
+  let cardClass = '';
+  
   if (dog.status === 'reunited') {
-    typeBadge = `<span class="badge badge-reunited">✅ REUNIDO</span>`;
+    typeBadge = `<span class="badge badge-reunited">✅ PERRO LOCALIZADO</span>`;
+    cardClass = 'reunited-card';
   } else if (dog.type === 'lost') {
     typeBadge = `<span class="badge badge-lost">⚠️ PERDIDO</span>`;
   } else {
@@ -42,11 +32,10 @@ if (dog.reward && dog.reward !== '') {
   const relativeDate = getRelativeTime(dogDate);
   const dogDesc = dog.desc || dog.description || 'Sin descripción disponible';
   
-  // Verificar si tiene fotos
   const hasPhotos = dog.photos && dog.photos.length > 0;
   const firstPhoto = hasPhotos ? dog.photos[0] : null;
   
-  // ✅ CORREGIDO - Sin onerror problemático
+  // Mostrar foto real o emoji
   let imageHtml = '';
   if (firstPhoto) {
     imageHtml = `<img src="${firstPhoto}" alt="${dogName}" style="width:100%; height:100%; object-fit:cover">`;
@@ -57,11 +46,18 @@ if (dog.reward && dog.reward !== '') {
   const sizeIcon = dogSize === 'Pequeño' ? '🐕' : dogSize === 'Mediano' ? '🐕‍🦺' : '🐕';
   
   const btn = dog.type === 'lost'
-    ? `<button class="btn btn-primary btn-sm" style="width:100%; margin-top:12px" onclick="showDetail(${dog.id})">ℹ️ Tengo información</button>`
-    : `<button class="btn btn-outline btn-sm" style="width:100%; margin-top:12px" onclick="showDetail(${dog.id})">🐾 Este podría ser mi perro</button>`;
+    ? `<button class="btn btn-primary btn-sm" style="width:auto; display:inline-block; margin-top:12px" onclick="showDetail(${dog.id})">ℹ️ Tengo información</button>`
+    : `<button class="btn btn-outline btn-sm" style="width:auto; display:inline-block; margin-top:12px" onclick="showDetail(${dog.id})">🐾 Ver detalles</button>`;
+  
+  // Mensaje especial para perros reunidos
+  const reunitedMessage = dog.status === 'reunited' 
+    ? `<div style="background:#4CAF50; color:white; padding:8px 12px; border-radius:8px; margin-top:12px; font-size:0.75rem; text-align:center; font-weight:600">
+        ✅ Este perro ya fue localizado y está con su familia
+       </div>`
+    : '';
   
   return `
-  <div class="dog-card" onclick="showDetail(${dog.id})">
+  <div class="dog-card ${cardClass}" onclick="showDetail(${dog.id})" style="cursor:pointer">
     <div class="dog-card-img" style="cursor:pointer; overflow:hidden; background:#f0f0f0">
       ${imageHtml}
     </div>
@@ -91,6 +87,7 @@ if (dog.reward && dog.reward !== '') {
       </div>
       <p class="dog-description">${dogDesc.substring(0, 80)}…</p>
       ${showBtn ? btn : ''}
+      ${reunitedMessage}
     </div>
   </div>`;
 }
