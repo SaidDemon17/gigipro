@@ -72,7 +72,7 @@ function renderReportPage() {
               <h2>📋 Tipo de Reporte</h2>
               <div class="type-toggle">
                 <button class="type-btn active" id="type-lost" onclick="setType('lost')">🔴 Perro Perdido</button>
-                <button class="type-btn" id="type-found" onclick="setType('found')">🟡 Perro Encontrado</button>
+                <button class="type-btn" id="type-found" onclick="setType('found')">🟡 Deambulante</button>
               </div>
             </div>
             <div style="display:flex; justify-content:flex-end; margin-top:24px">
