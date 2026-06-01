@@ -8,7 +8,6 @@ let cropper = null;
 let currentFileToCrop = null;
 
 function renderReportPage() {
-  // Verificar si el usuario está logueado
   if (!isLoggedIn()) {
     showToast('Por favor inicia sesión para reportar un perro', '');
     openAuthModal();
@@ -17,105 +16,178 @@ function renderReportPage() {
   
   const html = `
     <div class="report-page">
-      <h1>Reportar un Perro</h1>
-      <p class="sub">Ayuda a reunir a un perro perdido con su familia enviando un reporte.</p>
-
-      <div class="form-card">
-        <h2>📋 Tipo de Reporte</h2>
-        <div class="type-toggle">
-          <button class="type-btn active" id="type-lost" onclick="setType('lost')">🔴 Perro Perdido</button>
-          <button class="type-btn" id="type-found" onclick="setType('found')">🟡 Perro Encontrado</button>
-        </div>
+      <div class="report-header">
+        <h1>📝 Reportar un Perro</h1>
+        <p>Ayuda a reunir a un perro perdido con su familia enviando un reporte.</p>
       </div>
-
-      <div class="form-card">
-        <h2>📸 Fotos del Perro</h2>
-        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
-          <div class="upload-icon">📸</div>
-          <div class="upload-text">Haz clic o arrastra y suelta para subir fotos</div>
-          <div class="upload-sub">PNG, JPG hasta 10MB cada una — múltiples fotos permitidas</div>
-        </div>
-        <input type="file" id="file-input" multiple accept="image/jpeg,image/png" style="display:none" onchange="handleFileSelect(this.files)"/>
-        <div id="image-preview-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px"></div>
-      </div>
-
-      <div class="form-card">
-        <h2>🐾 Información del Perro</h2>
-        <div class="form-grid">
-          <div class="form-group" id="dog-name-group">
-            <label>Nombre del Perro <span style="color:var(--gray-400); font-weight:normal">(si se sabe)</span></label>
-            <input type="text" id="dogName" placeholder="Ej: Buddy"/>
-          </div>
-          <div class="form-group">
-            <label>Raza</label>
-            <input type="text" id="breed" placeholder="Ej: Golden Retriever" value="Desconocida"/>
-            <small style="color: var(--gray-500); font-size: 0.7rem;">La IA detectará la raza automáticamente desde la foto</small>
-          </div>
-          <div class="form-group"><label>Color</label><input type="text" id="color" placeholder="Ej: Dorado/crema"/></div>
-          <div class="form-group"><label>Tamaño</label><select id="size">
-            <option>Pequeño (menos de 9 kg)</option><option>Mediano (9-23 kg)</option><option>Grande (más de 23 kg)</option>
-          </select></div>
-          <div class="form-group"><label>Género</label><select id="gender"><option>Desconocido</option><option>Macho</option><option>Hembra</option></select></div>
-          <div class="form-group"><label>Edad (aprox.)</label><input type="text" id="age" placeholder="Ej: 3 años"/></div>
-          <div class="form-group full"><label>Descripción</label><textarea id="description" placeholder="Describe al perro — color de collar, marcas, características distintivas, información de microchip…"></textarea></div>
-        </div>
-      </div>
-      <div id="extra-details-section" class="form-card">
-        <h2>🐾 Detalles Adicionales (Opcional)</h2>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>Descripción Física</label>
-            <textarea id="physical" rows="2" placeholder="Ej: Orejas puntiagudas, cola larga, mancha blanca en el pecho..."></textarea>
-          </div>
-          <div class="form-group full">
-            <label>Personalidad</label>
-            <textarea id="personality" rows="2" placeholder="Ej: Juguetón, cariñoso, tímido con extraños, le gusta correr..."></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="form-card">
-        <h2>📍 Ubicación y Fecha</h2>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>📍 Ubicación del reporte</label>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-              <button type="button" class="btn btn-outline btn-sm" onclick="getUserLocation()" style="display: flex; align-items: center; gap: 6px;">
-                <span>📍</span> Usar mi ubicación actual
-              </button>
-              <button type="button" class="btn btn-outline btn-sm" onclick="resetMapLocation()" style="display: flex; align-items: center; gap: 6px;">
-                <span>🗺️</span> Restablecer mapa
-              </button>
+      
+      <div class="report-layout">
+        <div class="report-form">
+          <!-- Stepper -->
+          <div class="form-stepper" id="form-stepper">
+            <div class="step-item active" data-step="1">
+              <div class="step-number">1</div>
+              <div class="step-label">Tipo</div>
             </div>
-            <div id="report-map" style="height: 300px; width: 100%; border-radius: 12px; margin-bottom: 10px;"></div>
-            <input type="text" id="location-address" placeholder="La dirección aparecerá aquí" readonly style="background:#f0f0f0"/>
-            <input type="hidden" id="location-lat" />
-            <input type="hidden" id="location-lon" />
-            <small style="color: var(--gray-500);">🔍 Haz clic en el mapa o usa "Mi ubicación" para seleccionar el lugar</small>
+            <div class="step-item" data-step="2">
+              <div class="step-number">2</div>
+              <div class="step-label">Fotos</div>
+            </div>
+            <div class="step-item" data-step="3">
+              <div class="step-number">3</div>
+              <div class="step-label">Datos</div>
+            </div>
+            <div class="step-item" data-step="4">
+              <div class="step-number">4</div>
+              <div class="step-label">Contacto</div>
+            </div>
           </div>
-          <div class="form-group"><label>Fecha</label><input type="date" id="date"/></div>
-          <div class="form-group"><label>Hora (aprox.)</label><input type="time" id="time"/></div>
-        </div>
-      </div>
+          
+          <div class="form-card">
+            <h2>📋 Tipo de Reporte</h2>
+            <div class="type-toggle">
+              <button class="type-btn active" id="type-lost" onclick="setType('lost')">🔴 Perro Perdido</button>
+              <button class="type-btn" id="type-found" onclick="setType('found')">🟡 Perro Encontrado</button>
+            </div>
+          </div>
 
-      <div class="form-card" id="reward-section">
-        <h2>💰 Recompensa (Opcional)</h2>
-        <div class="form-grid">
-          <div class="form-group"><label>Monto de Recompensa</label><input type="text" id="reward" placeholder="Ej: S/500 o dejar en blanco"/></div>
-        </div>
-      </div>
+          <div class="form-card">
+            <h2>📸 Fotos del Perro</h2>
+            <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+              <div class="upload-icon">📸</div>
+              <div class="upload-text">Haz clic o arrastra y suelta para subir fotos</div>
+              <div class="upload-sub">PNG, JPG hasta 10MB cada una — múltiples fotos permitidas</div>
+            </div>
+            <input type="file" id="file-input" multiple accept="image/jpeg,image/png" style="display:none" onchange="handleFileSelect(this.files)"/>
+            <div id="image-preview-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:15px"></div>
+          </div>
 
-      <div class="form-card">
-        <h2>📞 Información de Contacto</h2>
-        <div class="form-grid">
-          <div class="form-group"><label>Tu Nombre</label><input type="text" id="contactName" placeholder="Tu nombre"/></div>
-          <div class="form-group"><label>Teléfono</label><input type="tel" id="phone" placeholder="(555) 000-0000"/></div>
-          <div class="form-group full"><label>Email</label><input type="email" id="email" placeholder="tu@email.com"/></div>
-        </div>
-      </div>
+          <div class="form-card">
+            <h2>🐾 Información del Perro</h2>
+            <div class="form-grid">
+              <div class="form-group" id="dog-name-group">
+                <label>Nombre del Perro <span style="color:var(--gray-400); font-weight:normal">(si se sabe)</span></label>
+                <input type="text" id="dogName" placeholder="Ej: Buddy"/>
+              </div>
+              <div class="form-group">
+                <label>Raza</label>
+                <input type="text" id="breed" placeholder="Ej: Golden Retriever" value="Desconocida"/>
+                <small style="color: var(--gray-500); font-size: 0.7rem;">🤖 La IA detectará la raza automáticamente</small>
+              </div>
+              <div class="form-group"><label>Color</label><input type="text" id="color" placeholder="Ej: Dorado/crema"/></div>
+              <div class="form-group"><label>Tamaño</label><select id="size">
+                <option>Pequeño (menos de 9 kg)</option><option>Mediano (9-23 kg)</option><option>Grande (más de 23 kg)</option>
+              </select></div>
+              <div class="form-group"><label>Género</label><select id="gender"><option>Desconocido</option><option>Macho</option><option>Hembra</option></select></div>
+              <div class="form-group"><label>Edad (aprox.)</label><input type="text" id="age" placeholder="Ej: 3 años"/></div>
+              <div class="form-group full"><label>Descripción</label><textarea id="description" placeholder="Describe al perro — color de collar, marcas, características distintivas, información de microchip…"></textarea></div>
+            </div>
+          </div>
+          
+          <div id="extra-details-section" class="form-card">
+            <h2>🐾 Detalles Adicionales (Opcional)</h2>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>Descripción Física</label>
+                <textarea id="physical" rows="2" placeholder="Ej: Orejas puntiagudas, cola larga, mancha blanca en el pecho..."></textarea>
+              </div>
+              <div class="form-group full">
+                <label>Personalidad</label>
+                <textarea id="personality" rows="2" placeholder="Ej: Juguetón, cariñoso, tímido con extraños, le gusta correr..."></textarea>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-card">
+            <h2>📍 Ubicación y Fecha</h2>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>📍 Ubicación del reporte</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="getUserLocation()" style="display: flex; align-items: center; gap: 6px;">
+                    <span>📍</span> Usar mi ubicación actual
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="resetMapLocation()" style="display: flex; align-items: center; gap: 6px;">
+                    <span>🗺️</span> Restablecer mapa
+                  </button>
+                </div>
+                <div id="report-map" style="height: 300px; width: 100%; border-radius: 12px; margin-bottom: 10px;"></div>
+                <input type="text" id="location-address" placeholder="La dirección aparecerá aquí" readonly style="background:#f0f0f0"/>
+                <input type="hidden" id="location-lat" />
+                <input type="hidden" id="location-lon" />
+                <small style="color: var(--gray-500);">🔍 Haz clic en el mapa o usa "Mi ubicación"</small>
+              </div>
+              <div class="form-group"><label>Fecha</label><input type="date" id="date"/></div>
+              <div class="form-group"><label>Hora (aprox.)</label><input type="time" id="time"/></div>
+            </div>
+          </div>
 
-      <div style="display:flex;gap:12px;margin-top:8px">
-        <button class="btn btn-outline" style="flex:1" onclick="previewReport()">Vista Previa</button>
-        <button class="btn btn-primary" style="flex:2" onclick="submitReport()">Enviar Reporte →</button>
+          <div class="form-card" id="reward-section">
+            <h2>💰 Recompensa (Opcional)</h2>
+            <div class="form-grid">
+              <div class="form-group"><label>Monto de Recompensa</label><input type="text" id="reward" placeholder="Ej: S/500 o dejar en blanco"/></div>
+            </div>
+          </div>
+
+          <div class="form-card">
+            <h2>📞 Información de Contacto</h2>
+            <div class="form-grid">
+              <div class="form-group"><label>Tu Nombre</label><input type="text" id="contactName" placeholder="Tu nombre"/></div>
+              <div class="form-group"><label>Teléfono</label><input type="tel" id="phone" placeholder="(555) 000-0000"/></div>
+              <div class="form-group full"><label>Email</label><input type="email" id="email" placeholder="tu@email.com"/></div>
+            </div>
+          </div>
+          
+          <!-- Progress bar -->
+          <div class="form-progress">
+            <div class="progress-bar-container">
+              <span class="progress-text" id="progress-percent">0%</span>
+              <div class="progress-bar-fill">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <p class="progress-message" id="progress-message">Completa el formulario para ayudar a encontrar a este perro 🐾</p>
+          </div>
+          
+          <div style="display:flex;gap:12px;margin-top:24px;margin-bottom:40px">
+            <button class="btn btn-outline" style="flex:1" onclick="previewReport()">👁️ Vista Previa</button>
+            <button class="btn btn-primary" style="flex:2" onclick="submitReport()">📤 Enviar Reporte →</button>
+          </div>
+        </div>
+        
+        <div class="report-sidebar">
+          <div class="tips-card">
+            <h3>✨ Tips para tu reporte</h3>
+            <div class="tip-item">
+              <div class="tip-icon">📸</div>
+              <div class="tip-content">
+                <h4>Buena foto = Más chances</h4>
+                <p>Una foto clara aumenta 3x las probabilidades de encontrar a tu perro.</p>
+              </div>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">📍</div>
+              <div class="tip-content">
+                <h4>Ubicación precisa</h4>
+                <p>Sé específico con el lugar donde se vio por última vez.</p>
+              </div>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">🏷️</div>
+              <div class="tip-content">
+                <h4>Menciona señas particulares</h4>
+                <p>Microchip, collar, cicatrices o manchas ayudan a identificarlo.</p>
+              </div>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">🤖</div>
+              <div class="tip-content">
+                <h4>IA inteligente</h4>
+                <p>Nuestra IA comparará tu reporte con otros automáticamente.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -124,27 +196,63 @@ function renderReportPage() {
   initReportMap();
   setupDragAndDrop();
   updateFormFields();
+  updateFormProgress();
+  
+  // Agregar evento para actualizar progress cuando se llenan campos
+  const inputs = document.querySelectorAll('#page-report input, #page-report select, #page-report textarea');
+  inputs.forEach(input => {
+    input.addEventListener('input', updateFormProgress);
+    input.addEventListener('change', updateFormProgress);
+  });
 }
 
-function updateFormFields() {
-  const isLost = document.getElementById('type-lost')?.classList.contains('active');
-  const dogNameGroup = document.getElementById('dog-name-group');
-  const rewardSection = document.getElementById('reward-section');
-  const extraDetailsSection = document.getElementById('extra-details-section');
+// Función para actualizar la barra de progreso
+function updateFormProgress() {
+  const inputs = document.querySelectorAll('#page-report .form-card input, #page-report .form-card select, #page-report .form-card textarea');
+  let total = 0;
+  let filled = 0;
   
-  if (!isLost) {
-    // Modo FOUND - ocultar campos innecesarios
-    if (dogNameGroup) dogNameGroup.style.display = 'none';
-    if (rewardSection) rewardSection.style.display = 'none';
-    if (extraDetailsSection) extraDetailsSection.style.display = 'none';
-  } else {
-    // Modo LOST - mostrar todos los campos
-    if (dogNameGroup) dogNameGroup.style.display = 'block';
-    if (rewardSection) rewardSection.style.display = 'block';
-    if (extraDetailsSection) extraDetailsSection.style.display = 'block';
+  inputs.forEach(input => {
+    if (input.type !== 'hidden' && input.style.display !== 'none') {
+      total++;
+      if (input.value && input.value.trim() !== '') {
+        filled++;
+      }
+    }
+  });
+  
+  const percentage = total > 0 ? Math.round((filled / total) * 100) : 0;
+  const progressFill = document.getElementById('progress-fill');
+  const progressPercent = document.getElementById('progress-percent');
+  const progressMessage = document.getElementById('progress-message');
+  
+  if (progressFill) progressFill.style.width = `${percentage}%`;
+  if (progressPercent) progressPercent.textContent = `${percentage}%`;
+  
+  if (progressMessage) {
+    if (percentage < 30) progressMessage.textContent = 'Comienza completando el formulario 🐾';
+    else if (percentage < 60) progressMessage.textContent = '¡Vamos bien! Sigue completando los datos 📝';
+    else if (percentage < 90) progressMessage.textContent = 'Casi listo, revisa la ubicación y el contacto 📍';
+    else progressMessage.textContent = '¡Listo para enviar! Ayuda a este perro a encontrar su hogar 🎉';
+  }
+  
+  // Actualizar stepper
+  const step = Math.ceil(percentage / 25);
+  for (let i = 1; i <= 4; i++) {
+    const stepItem = document.querySelector(`.step-item[data-step="${i}"]`);
+    if (stepItem) {
+      if (i < step) {
+        stepItem.classList.add('completed');
+        stepItem.classList.remove('active');
+      } else if (i === step) {
+        stepItem.classList.add('active');
+        stepItem.classList.remove('completed');
+      } else {
+        stepItem.classList.remove('active', 'completed');
+      }
+    }
   }
 }
-
 // ============================================
 // INICIALIZACIÓN DEL MAPA
 // ============================================
@@ -696,4 +804,5 @@ window.closeCropModal = closeCropModal;
 window.applyCrop = applyCrop;
 window.setType = setType;
 window.previewReport = previewReport;
+window.updateFormProgress = updateFormProgress;
 window.submitReport = submitReport;
