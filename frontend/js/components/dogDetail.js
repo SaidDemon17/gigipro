@@ -450,3 +450,6 @@ window.getConfidenceText = getConfidenceText;
 window.generateAIReport = generateAIReport;
 window.displaySavedMatches = displaySavedMatches;
 window.loadSavedMatches = loadSavedMatches;
+window.nextStep = nextStep;
+window.prevStep = prevStep;
+window.updateStepUI = updateStepUI;
